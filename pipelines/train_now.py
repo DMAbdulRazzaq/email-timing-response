@@ -25,6 +25,9 @@ from config import Config
 from environment.email_env import EmailEnvironment
 from simulation.simulator import EmailSimulator
 from training.trainer import Trainer
+import mlflow
+
+mlflow.set_experiment("email-timing-models")
 
 ENRON_DIR = os.path.join(PROJECT_DIR, "enron_dataset")
 MODELS_DIR = os.path.join(PROJECT_DIR, "models")

@@ -9,9 +9,12 @@ import os
 import pickle
 import sys
 import time
+import mlflow
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+mlflow.set_experiment("email-timing-models")
 
 
 from agent.dqn import DQNAgent
@@ -48,33 +51,43 @@ os.makedirs("models", exist_ok=True)
 history = []
 start = time.time()
 
-for ep in range(1, EPISODES + 1):
-    state = env.reset()
-    total = 0.0
-    for _ in range(env._max_steps):
-        action = agent.select_action(state)
-        next_state, reward, done = env.step(action)
-        agent.learn(state, action, reward, next_state, done)
-        state = next_state
-        total += reward
-        if done:
-            break
+with mlflow.start_run(run_name="local_dqn", nested=True):
+    mlflow.log_param("episodes", EPISODES)
+    mlflow.log_param("gamma", agent.gamma)
+    mlflow.log_param("alpha", agent.alpha)
 
-    agent.decay_epsilon()
-    history.append(total)
+    for ep in range(1, EPISODES + 1):
+        state = env.reset()
+        total = 0.0
+        for _ in range(env._max_steps):
+            action = agent.select_action(state)
+            next_state, reward, done = env.step(action)
+            agent.learn(state, action, reward, next_state, done)
+            state = next_state
+            total += reward
+            if done:
+                break
 
-    if ep % LOG_EVERY == 0:
-        avg = sum(history[-LOG_EVERY:]) / LOG_EVERY
-        elapsed = time.time() - start
-        print(
-            f"  Ep {ep:>6,} | avg reward: {avg:>+6.1f} | "
-            f"eps: {agent.epsilon:.3f} | {elapsed:.1f}s"
-        )
+        agent.decay_epsilon()
+        history.append(total)
 
-# Final save
-agent.epsilon = agent.epsilon_min
-with open(SAVE_PATH, "wb") as f:
-    pickle.dump(agent, f)
+        if ep % LOG_EVERY == 0:
+            avg = sum(history[-LOG_EVERY:]) / LOG_EVERY
+            elapsed = time.time() - start
+            mlflow.log_metric("avg_reward", avg, step=ep)
+            mlflow.log_metric("epsilon", agent.epsilon, step=ep)
+            print(
+                f"  Ep {ep:>6,} | avg reward: {avg:>+6.1f} | "
+                f"eps: {agent.epsilon:.3f} | {elapsed:.1f}s"
+            )
 
-elapsed = time.time() - start
-print(f"\n  Training finished in {elapsed:.1f} seconds  ->  {SAVE_PATH}")
+    # Final save
+    agent.epsilon = agent.epsilon_min
+    with open(SAVE_PATH, "wb") as f:
+        pickle.dump(agent, f)
+    
+    mlflow.log_artifact(SAVE_PATH)
+
+    elapsed = time.time() - start
+    mlflow.log_metric("total_training_time_sec", elapsed)
+    print(f"\n  Training finished in {elapsed:.1f} seconds  ->  {SAVE_PATH}")

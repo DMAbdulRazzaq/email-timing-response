@@ -54,3 +54,4 @@ Thumbs.db
 
 # Reward curve images (generated artefacts)
 # reward_curve*.png
+/enron_dataset
