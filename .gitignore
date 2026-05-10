@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Environment files (secrets)
+.env.local
+.env.*.local
+
+# Models (large binary files — store in cloud storage, not git)
+# Comment out if you want to commit small model files
+# models/*.pt
+# models/*.pkl
+# models/checkpoint_*.pkl
+
+# Logs
+#logs/
+#*.log
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker
+#.dockerignore
+
+# Reward curve images (generated artefacts)
+# reward_curve*.png

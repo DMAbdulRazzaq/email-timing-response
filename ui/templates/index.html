@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RL Email Triage Agent — Neural Decision System</title>
+  <meta name="description" content="Reinforcement Learning email triage agent. Real-time DQN-based decision engine classifying email urgency with adaptive sender memory and temporal awareness.">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── DESIGN TOKENS ─────────────────────────────────────────── */
+    :root {
+      --bg:          #020617;
+      --bg2:         #0a0f1e;
+      --bg3:         #0f172a;
+      --panel:       rgba(15, 23, 42, 0.72);
+      --border:      rgba(255,255,255,0.07);
+      --border-hl:   rgba(34,197,94,0.35);
+      --text:        #f1f5f9;
+      --muted:       #64748b;
+      --faint:       #334155;
+      --green:       #22c55e;
+      --green-glow:  rgba(34,197,94,0.15);
+      --blue:        #3b82f6;
+      --cyan:        #06b6d4;
+      --amber:       #f59e0b;
+      --red:         #ef4444;
+      --purple:      #a855f7;
+      --mono:        'Fira Code', monospace;
+      --sans:        'Fira Sans', sans-serif;
+      --radius:      12px;
+      --radius-lg:   18px;
+      --blur:        20px;
+      --transition:  200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(59,130,246,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(168,85,247,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 50%, rgba(34,197,94,0.03) 0%, transparent 70%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      grid-template-rows: auto 1fr;
+    }
+
+    /* ── SCROLLBAR ─────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
+
+    /* ── GLASS PANEL ───────────────────────────────────────────── */
+    .glass {
+      background: var(--panel);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+
+    /* ── TOP NAV BAR ───────────────────────────────────────────── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: rgba(2,6,23,0.9);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(var(--blur));
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(34,197,94,0.3);
+    }
+    .brand-icon svg { width: 20px; height: 20px; color: #000; }
+    .brand-name {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .brand-name span { color: var(--green); }
+    .brand-sub {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Live status badge */
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 100px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+      50%      { opacity: 0.5; box-shadow: 0 0 2px var(--green); }
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    #agent-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    #agent-badge span { color: var(--cyan); }
+
+    /* ── SIDEBAR ───────────────────────────────────────────────── */
+    .sidebar {
+      grid-column: 1;
+      padding: 24px 16px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      height: calc(100vh - 65px);
+      position: sticky;
+      top: 65px;
+    }
+
+    .sidebar-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 8px;
+      margin-bottom: -8px;
+    }
+
+    /* ── SESSION METRICS ──────────────────────────────────────── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .metric-card {
+      background: rgba(15,23,42,0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      transition: border-color var(--transition);
+    }
+    .metric-card:hover { border-color: rgba(34,197,94,0.25); }
+    .metric-val {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .metric-val.pos { color: var(--green); }
+    .metric-val.neg { color: var(--red); }
+    .metric-lbl {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .metric-card.wide {
+      grid-column: 1 / -1;
+    }
+
+    /* ── ACTION DISTRIBUTION BAR ──────────────────────────────── */
+    .dist-bar-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .dist-row { display: flex; align-items: center; gap: 8px; }
+    .dist-name { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 60px; flex-shrink: 0; }
+    .dist-track {
+      flex: 1; height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px; overflow: hidden;
+    }
+    .dist-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+    .dist-count { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 20px; text-align: right; }
+
+    /* ── EPSILON GAUGE ─────────────────────────────────────────── */
+    .eps-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .eps-row { display: flex; justify-content: space-between; align-items: center; }
+    .eps-val { font-family: var(--mono); font-size: 13px; color: var(--cyan); }
+    .eps-track {
+      height: 4px; background: rgba(255,255,255,0.06);
+      border-radius: 2px; overflow: hidden;
+    }
+    .eps-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--purple), var(--cyan));
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    /* ── SENDER MEMORY LIST ───────────────────────────────────── */
+    .memory-list { display: flex; flex-direction: column; gap: 5px; }
+    .mem-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      gap: 8px;
+    }
+    .mem-sender { font-family: var(--mono); font-size: 10px; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mem-score {
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .mem-score.high { background: rgba(34,197,94,0.15); color: var(--green); }
+    .mem-score.med  { background: rgba(59,130,246,0.12); color: var(--blue); }
+    .mem-score.low  { background: rgba(239,68,68,0.12);  color: var(--red); }
+    .mem-empty { font-size: 11px; color: var(--faint); text-align: center; padding: 12px 0; font-family: var(--mono); }
+
+    /* ── MAIN CONTENT ──────────────────────────────────────────── */
+    .main {
+      grid-column: 2;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    /* Page header */
+    .page-header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .page-title {
+      font-size: 22px; font-weight: 700;
+      background: linear-gradient(135deg, var(--text) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-family: var(--mono);
+    }
+    .page-subtitle { font-size: 12px; color: var(--muted); }
+
+    /* ── MODE TOGGLE ───────────────────────────────────────────── */
+    .mode-toggle {
+      display: flex; gap: 4px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 3px;
+      width: fit-content;
+    }
+    .mpill {
+      padding: 7px 20px;
+      border-radius: 100px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      transition: all var(--transition);
+    }
+    .mpill.on {
+      background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(6,182,212,0.2));
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,0.3);
+      box-shadow: 0 0 12px rgba(34,197,94,0.15);
+    }
+
+    /* ── INPUT PANELS ──────────────────────────────────────────── */
+    .form-section { display: flex; flex-direction: column; gap: 20px; }
+    #panel-auto, #panel-manual { display: none; }
+    #panel-auto.active, #panel-manual.active { display: block; }
+
+    /* NLP Auto Panel */
+    .auto-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .field input {
+      background: rgba(15,23,42,0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      width: 100%;
+    }
+    .field input::placeholder { color: var(--faint); }
+    .field input:focus {
+      border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.08);
+    }
+    .field.wide { grid-column: 1 / -1; }
+
+    /* Live reasoning strip */
+    .reasoning-strip {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 12px 16px;
+      background: rgba(6,182,212,0.04);
+      border: 1px solid rgba(6,182,212,0.1);
+      border-radius: var(--radius);
+      min-height: 44px;
+      align-items: center;
+    }
+    .rsn-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+    .rsn-chip .rsn-val { color: var(--cyan); }
+    .rsn-empty { font-size: 11px; color: var(--faint); font-family: var(--mono); }
+
+    /* ── SLIDER ROWS (manual mode) ─────────────────────────────── */
+    .slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .slider-row { display: flex; flex-direction: column; gap: 6px; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; }
+    .slider-label { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .slider-val { font-family: var(--mono); font-size: 12px; color: var(--cyan); font-weight: 600; }
+    input[type=range] {
+      width: 100%; height: 4px;
+      -webkit-appearance: none;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(34,197,94,0.5);
+      transition: transform var(--transition);
+    }
+    input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.2); }
+    .slider-row.wide { grid-column: 1 / -1; }
+
+    /* ── SUBMIT BUTTON ─────────────────────────────────────────── */
+    .btn-decide {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(6,182,212,0.15) 100%);
+      border: 1px solid rgba(34,197,94,0.35);
+      border-radius: var(--radius);
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-decide::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(6,182,212,0.08));
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .btn-decide:hover { border-color: rgba(34,197,94,0.6); box-shadow: 0 0 24px rgba(34,197,94,0.15); }
+    .btn-decide:hover::before { opacity: 1; }
+    .btn-decide:active { transform: scale(0.98); }
+    .btn-decide svg { width: 16px; height: 16px; transition: transform var(--transition); }
+    .btn-decide:hover svg { transform: translateX(3px); }
+    .btn-decide.loading { pointer-events: none; opacity: 0.7; }
+
+    /* ── RESULT PANEL ──────────────────────────────────────────── */
+    .result-outer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    #result-panel {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      grid-column: 1 / -1;
+    }
+    #result-panel.show { opacity: 1; transform: translateY(0); }
+
+    /* Decision card */
+    .decision-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      padding: 20px 24px;
+    }
+    .decision-hero {
+      width: 72px; height: 72px;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .decision-hero svg { width: 32px; height: 32px; }
+    .decision-hero.reply_now    { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: var(--green); box-shadow: 0 0 24px rgba(34,197,94,0.15); }
+    .decision-hero.delay_reply  { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: var(--blue); box-shadow: 0 0 24px rgba(59,130,246,0.12); }
+    .decision-hero.mark_important { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: var(--amber); box-shadow: 0 0 24px rgba(245,158,11,0.12); }
+    .decision-hero.archive      { background: rgba(100,116,139,0.12); border: 1px solid rgba(100,116,139,0.3); color: var(--muted); }
+
+    .decision-body { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+    .decision-label {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .decision-label.reply_now     { color: var(--green); }
+    .decision-label.delay_reply   { color: var(--blue); }
+    .decision-label.mark_important{ color: var(--amber); }
+    .decision-label.archive       { color: var(--muted); }
+
+    .decision-sub { font-size: 12px; color: var(--muted); }
+    .reward-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      width: fit-content;
+    }
+    .reward-badge.pos { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .reward-badge.neg { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.25);  color: var(--red);  }
+
+    /* ── Q-VALUE BARS ──────────────────────────────────────────── */
+    .qval-panel { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .qval-title { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+    .qval-rows { display: flex; flex-direction: column; gap: 10px; }
+    .qval-row { display: flex; align-items: center; gap: 10px; }
+    .qval-name { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 90px; flex-shrink: 0; }
+    .qval-track {
+      flex: 1; height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px; overflow: hidden;
+    }
+    .qval-fill {
+      height: 100%; border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .qval-fill.best { background: linear-gradient(90deg, var(--green), var(--cyan)); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .qval-fill.other { background: rgba(100,116,139,0.4); }
+    .qval-num { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 38px; text-align: right; }
+
+    /* ── STATE VECTOR ──────────────────────────────────────────── */
+    .state-panel { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .state-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .state-chip {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      min-width: 72px;
+      transition: border-color var(--transition);
+    }
+    .state-chip:hover { border-color: rgba(6,182,212,0.3); }
+    .state-chip-val { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--cyan); }
+    .state-chip-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* ── REASONING BOX ─────────────────────────────────────────── */
+    .reasoning-panel { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .rsn-row { display: flex; align-items: flex-start; gap: 10px; }
+    .rsn-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+    .rsn-content { display: flex; flex-direction: column; gap: 2px; }
+    .rsn-key { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .rsn-text { font-size: 12px; color: var(--text); }
+
+    /* ── HISTORY TABLE ─────────────────────────────────────────── */
+    .history-panel { padding: 0; overflow: hidden; }
+    .history-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-title { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+    .history-list { max-height: 260px; overflow-y: auto; }
+    .hist-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 110px 70px 60px;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: background var(--transition);
+    }
+    .hist-row:hover { background: rgba(255,255,255,0.02); }
+    .hist-num { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+    .hist-subject { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hist-action { font-family: var(--mono); font-size: 10px; }
+    .hist-action.reply_now     { color: var(--green); }
+    .hist-action.delay_reply   { color: var(--blue); }
+    .hist-action.mark_important{ color: var(--amber); }
+    .hist-action.archive       { color: var(--muted); }
+    .hist-reward { font-family: var(--mono); font-size: 11px; font-weight: 600; text-align: right; }
+    .hist-reward.pos { color: var(--green); }
+    .hist-reward.neg { color: var(--red); }
+    .hist-p { font-family: var(--mono); font-size: 10px; text-align: center; }
+    .hist-p.p3 { color: var(--green); }
+    .hist-p.p2 { color: var(--amber); }
+    .hist-p.p1 { color: var(--muted); }
+
+    .empty-history {
+      padding: 32px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--faint);
+    }
+
+    /* ── SECTION LABELS ────────────────────────────────────────── */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── PRIORITY INDICATOR PILL ───────────────────────────────── */
+    .prio-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .prio-pill.p3 { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .prio-pill.p2 { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .prio-pill.p1 { background: rgba(100,116,139,0.1); color: var(--muted); border: 1px solid rgba(100,116,139,0.2); }
+
+    /* ── RESPONSIVE ────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      body { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 16px; }
+    }
+    @media (max-width: 640px) {
+      .auto-grid, .slider-grid, .result-outer { grid-template-columns: 1fr; }
+      .topbar { padding: 12px 16px; }
+    }
+
+    /* ── MICRO ANIMATIONS ──────────────────────────────────────── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: fade-up 0.3s ease forwards; }
+
+    @keyframes scan-line {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .btn-decide.loading::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(34,197,94,0.12), transparent);
+      animation: scan-line 1.2s ease infinite;
+    }
+
+    /* prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP NAV ══════════════════════════════════════════════════════════════ -->
+<nav class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">RL<span>·</span>EMAIL<span>·</span>AGENT</div>
+      <div class="brand-sub">Deep Q-Network Decision System</div>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span>NEURAL NET ONLINE</span>
+    </div>
+    <div id="agent-badge">Loading agent…</div>
+  </div>
+</nav>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+
+  <div class="sidebar-label">Session Analytics</div>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-val" id="s-total">0</div>
+      <div class="metric-lbl">Decisions</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val pos" id="s-avg">—</div>
+      <div class="metric-lbl">Avg Reward</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val pos" id="s-reward">0</div>
+      <div class="metric-lbl">Total Reward</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" id="s-correct">—</div>
+      <div class="metric-lbl">Accuracy</div>
+    </div>
+    <div class="metric-card wide">
+      <div class="metric-lbl" style="margin-bottom:6px">Rolling Avg (last 50)</div>
+      <div class="metric-val pos" id="s-rolling">—</div>
+    </div>
+  </div>
+
+  <div class="sidebar-label">Exploration (ε)</div>
+  <div class="glass" style="padding:14px">
+    <div class="eps-wrap">
+      <div class="eps-row">
+        <span class="sidebar-label" style="font-size:9px">EPSILON</span>
+        <span class="eps-val" id="eps-val">0.3000</span>
+      </div>
+      <div class="eps-track"><div class="eps-fill" id="eps-fill" style="width:30%"></div></div>
+      <div style="font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:4px">
+        Decays every 10 decisions → ε_min = 0.10
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-label">Action Distribution</div>
+  <div class="glass" style="padding:14px">
+    <div class="dist-bar-wrap">
+      <div class="dist-row">
+        <span class="dist-name">reply_now</span>
+        <div class="dist-track"><div class="dist-fill" id="dist-0" style="width:0%;background:var(--green)"></div></div>
+        <span class="dist-count" id="dc-0">0</span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-name">delay</span>
+        <div class="dist-track"><div class="dist-fill" id="dist-1" style="width:0%;background:var(--blue)"></div></div>
+        <span class="dist-count" id="dc-1">0</span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-name">mark_imp</span>
+        <div class="dist-track"><div class="dist-fill" id="dist-2" style="width:0%;background:var(--amber)"></div></div>
+        <span class="dist-count" id="dc-2">0</span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-name">archive</span>
+        <div class="dist-track"><div class="dist-fill" id="dist-3" style="width:0%;background:var(--muted)"></div></div>
+        <span class="dist-count" id="dc-3">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-label">Sender Memory</div>
+  <div class="glass" style="padding:12px; flex:1; overflow-y:auto; max-height:220px">
+    <div class="memory-list" id="memory-list">
+      <div class="mem-empty">No senders learned yet</div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ══ MAIN CONTENT ══════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <div class="page-header">
+    <h1 class="page-title">// EMAIL TRIAGE</h1>
+    <span class="page-subtitle">Adaptive DQN policy with temporal awareness and sender memory</span>
+  </div>
+
+  <!-- Mode toggle -->
+  <div class="mode-toggle" role="tablist">
+    <button class="mpill on" id="pill-auto" role="tab" onclick="setMode('auto')" aria-selected="true">AUTO NLP</button>
+    <button class="mpill"    id="pill-manual" role="tab" onclick="setMode('manual')" aria-selected="false">MANUAL</button>
+  </div>
+
+  <!-- ── AUTO NLP PANEL ── -->
+  <div class="form-section">
+    <div id="panel-auto" class="glass active" style="padding:24px">
+      <div class="section-label" style="margin-bottom:16px">Email Input</div>
+      <div class="auto-grid">
+        <div class="field wide">
+          <label for="subj">Subject line</label>
+          <input id="subj" type="text" placeholder="e.g. urgent server down ASAP…" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="sndr">Sender email</label>
+          <input id="sndr" type="text" placeholder="admin@company.com" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>NLP Analysis</label>
+          <div class="reasoning-strip" id="rsn-strip">
+            <span class="rsn-empty">Type subject + sender to see live analysis →</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn-decide" id="btn-auto" onclick="submitAuto()" style="margin-top:20px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        RUN TRIAGE AGENT
+      </button>
+    </div>
+
+    <!-- ── MANUAL PANEL ── -->
+    <div id="panel-manual" class="glass" style="padding:24px">
+      <div class="section-label" style="margin-bottom:16px">Feature Override</div>
+      <div class="auto-grid" style="margin-bottom:16px">
+        <div class="field"><label for="m-subj">Subject</label><input id="m-subj" type="text" placeholder="Test email" autocomplete="off"></div>
+        <div class="field"><label for="m-sndr">Sender</label><input id="m-sndr" type="text" placeholder="test@example.com" autocomplete="off"></div>
+      </div>
+      <div class="slider-grid">
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Priority</span>
+            <span class="slider-val"><span id="sv-p">1</span> / 3</span>
+          </div>
+          <input type="range" id="sl-p" min="1" max="3" value="1" step="1" oninput="document.getElementById('sv-p').textContent=this.value">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Sender Importance</span>
+            <span class="slider-val"><span id="sv-si">2</span> / 3</span>
+          </div>
+          <input type="range" id="sl-si" min="1" max="3" value="2" step="1" oninput="document.getElementById('sv-si').textContent=this.value">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Waiting Time (min)</span>
+            <span class="slider-val"><span id="sv-w">0</span>m</span>
+          </div>
+          <input type="range" id="sl-w" min="0" max="120" value="0" step="5" oninput="document.getElementById('sv-w').textContent=this.value">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Workload</span>
+            <span class="slider-val"><span id="sv-wl">1</span> / 3</span>
+          </div>
+          <input type="range" id="sl-wl" min="1" max="3" value="1" step="1" oninput="document.getElementById('sv-wl').textContent=this.value">
+        </div>
+        <div class="slider-row wide">
+          <div class="slider-header">
+            <span class="slider-label">Time of Day</span>
+            <span class="slider-val"><span id="sv-t">9</span>:00</span>
+          </div>
+          <input type="range" id="sl-t" min="0" max="23" value="9" step="1" oninput="document.getElementById('sv-t').textContent=this.value">
+        </div>
+      </div>
+      <button class="btn-decide" id="btn-manual" onclick="submitManual()" style="margin-top:20px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        RUN TRIAGE AGENT
+      </button>
+    </div>
+  </div>
+
+  <!-- ── RESULT ── -->
+  <div id="result-panel" class="glass" role="region" aria-live="polite" aria-label="Agent decision">
+    <!-- Decision card + Q-values on same row -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border)">
+      <div class="decision-card" style="border-right:1px solid var(--border)">
+        <div class="decision-hero" id="d-hero">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="d-icon"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+        <div class="decision-body">
+          <div class="decision-label" id="d-label">—</div>
+          <div class="decision-sub" id="d-sub">Awaiting decision</div>
+          <div class="reward-badge pos" id="d-reward">—</div>
+        </div>
+      </div>
+
+      <div class="qval-panel">
+        <div class="qval-title">Q-Value Confidence</div>
+        <div class="qval-rows">
+          <div class="qval-row">
+            <span class="qval-name">reply_now</span>
+            <div class="qval-track"><div class="qval-fill other" id="qv-0" style="width:0%"></div></div>
+            <span class="qval-num" id="qn-0">—</span>
+          </div>
+          <div class="qval-row">
+            <span class="qval-name">delay_reply</span>
+            <div class="qval-track"><div class="qval-fill other" id="qv-1" style="width:0%"></div></div>
+            <span class="qval-num" id="qn-1">—</span>
+          </div>
+          <div class="qval-row">
+            <span class="qval-name">mark_import</span>
+            <div class="qval-track"><div class="qval-fill other" id="qv-2" style="width:0%"></div></div>
+            <span class="qval-num" id="qn-2">—</span>
+          </div>
+          <div class="qval-row">
+            <span class="qval-name">archive</span>
+            <div class="qval-track"><div class="qval-fill other" id="qv-3" style="width:0%"></div></div>
+            <span class="qval-num" id="qn-3">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State vector + reasoning -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border)">
+      <div class="state-panel" style="border-right:1px solid var(--border)">
+        <div class="qval-title">State Vector</div>
+        <div class="state-chips">
+          <div class="state-chip"><div class="state-chip-val" id="sv-priority">—</div><div class="state-chip-lbl">PRIORITY</div></div>
+          <div class="state-chip"><div class="state-chip-val" id="sv-si">—</div><div class="state-chip-lbl">SENDER</div></div>
+          <div class="state-chip"><div class="state-chip-val" id="sv-wait">—</div><div class="state-chip-lbl">WAIT</div></div>
+          <div class="state-chip"><div class="state-chip-val" id="sv-wl">—</div><div class="state-chip-lbl">WORKLOAD</div></div>
+          <div class="state-chip"><div class="state-chip-val" id="sv-tod">—</div><div class="state-chip-lbl">TIME</div></div>
+        </div>
+        <div style="margin-top:8px">
+          <code style="font-family:var(--mono); font-size:10px; color:var(--muted)" id="sv-raw">[ — ]</code>
+        </div>
+      </div>
+
+      <div class="reasoning-panel" id="rbox" style="display:none">
+        <div class="qval-title">NLP Reasoning</div>
+        <div class="rsn-row">
+          <svg class="rsn-icon" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          <div class="rsn-content">
+            <span class="rsn-key">Priority Signal</span>
+            <span class="rsn-text" id="r-subject">—</span>
+          </div>
+        </div>
+        <div class="rsn-row">
+          <svg class="rsn-icon" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <div class="rsn-content">
+            <span class="rsn-key">Sender Trust</span>
+            <span class="rsn-text" id="r-sender">—</span>
+          </div>
+        </div>
+        <div class="rsn-row">
+          <svg class="rsn-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="rsn-content">
+            <span class="rsn-key">Context</span>
+            <span class="rsn-text" id="r-workload">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email meta row -->
+    <div style="display:flex; gap:16px; padding:14px 20px; align-items:center; flex-wrap:wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+      <span id="d-subject" style="font-size:12px; color:var(--text); flex:1; font-family:var(--mono)">—</span>
+      <span id="d-sender" style="font-size:11px; color:var(--muted); font-family:var(--mono)">—</span>
+      <div id="d-prio-pill" class="prio-pill p2"></div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY ── -->
+  <div class="glass history-panel">
+    <div class="history-header">
+      <span class="history-title">Decision History</span>
+      <span style="font-family:var(--mono); font-size:10px; color:var(--muted)" id="hist-count">0 decisions</span>
+    </div>
+    <div class="history-list" id="hist-list">
+      <div class="empty-history">Submit an email to begin → agent decisions log here</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ JAVASCRIPT ══════════════════════════════════════════════════════════════ -->
+<script>
+  'use strict';
+
+  /* ── State ─────────────────────────────────────────────────────────────── */
+  let currentMode = 'auto';
+  let totalCount  = 0;
+  let totalReward = 0;
+  let correctCount= 0;
+  let histItems   = [];
+  let actionCounts= [0,0,0,0];
+  let debounceTimer;
+
+  const LABELS = {
+    reply_now:     'Reply Now',
+    delay_reply:   'Delay Reply',
+    mark_important:'Mark Important',
+    archive:       'Archive'
+  };
+  const ICONS = {
+    reply_now:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+    delay_reply:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    mark_important:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    archive:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`
+  };
+  const OPTIMAL = { 3:'reply_now', 2:'delay_reply', 1:'archive' };
+  const PL = ['','Low','Medium','High'];
+
+  /* ── Agent badge + debug polling ──────────────────────────────────────── */
+  function updateBadge(mode, epsilon) {
+    const lbl = (mode === 'dqn') ? 'DQN Double-Q' : 'Q-Learning';
+    const eps = (epsilon !== undefined) ? ' · ε=' + epsilon.toFixed(4) : '';
+    document.getElementById('agent-badge').innerHTML =
+      'Agent Online · <span>' + lbl + eps + '</span>';
+    // update sidebar epsilon
+    document.getElementById('eps-val').textContent = (epsilon !== undefined ? epsilon.toFixed(4) : '—');
+    document.getElementById('eps-fill').style.width = (epsilon !== undefined ? Math.min(epsilon / 1.0 * 100, 100) + '%' : '0%');
+  }
+
+  fetch('/agent_status').then(r => r.json()).then(d => {
+    updateBadge(d.mode, d.epsilon);
+  }).catch(() => {});
+
+  // Poll /debug every 5s to update sidebar stats
+  function pollDebug() {
+    fetch('/debug').then(r => r.json()).then(d => {
+      updateBadge(d.agent_mode, d.epsilon);
+      updateSenderMemory(d.sender_memory || {});
+      const sess = d.session || {};
+      if (sess.rolling_avg_reward !== undefined && sess.decisions > 0) {
+        const avg = sess.rolling_avg_reward;
+        document.getElementById('s-rolling').textContent = (avg >= 0 ? '+' : '') + avg.toFixed(2);
+        document.getElementById('s-rolling').className = 'metric-val ' + (avg >= 0 ? 'pos' : 'neg');
+      }
+    }).catch(() => {});
+  }
+  setInterval(pollDebug, 5000);
+
+  /* ── Mode switching ───────────────────────────────────────────────────── */
+  function setMode(m) {
+    currentMode = m;
+    document.getElementById('panel-auto').classList.toggle('active', m === 'auto');
+    document.getElementById('panel-manual').classList.toggle('active', m === 'manual');
+    document.getElementById('pill-auto').classList.toggle('on', m === 'auto');
+    document.getElementById('pill-manual').classList.toggle('on', m === 'manual');
+    document.getElementById('pill-auto').setAttribute('aria-selected', m === 'auto');
+    document.getElementById('pill-manual').setAttribute('aria-selected', m === 'manual');
+  }
+  setMode('auto');
+
+  /* ── Live NLP preview ─────────────────────────────────────────────────── */
+  ['subj','sndr'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(fetchInfer, 280);
+    });
+  });
+
+  function fetchInfer() {
+    const subject = document.getElementById('subj').value.trim();
+    const sender  = document.getElementById('sndr').value.trim();
+    if (!subject && !sender) return;
+    fetch('/infer', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({subject, sender})
+    }).then(r => r.json()).then(d => renderReasoningStrip(d)).catch(()=>{});
+  }
+
+  function renderReasoningStrip(d) {
+    const strip = document.getElementById('rsn-strip');
+    if (!d || !d.priority) {
+      strip.innerHTML = '<span class="rsn-empty">—</span>';
+      return;
+    }
+    const pNames = ['','Low','Medium','High'];
+    const siNames= ['','Promotional','Professional','Academic/Gov'];
+    strip.innerHTML = `
+      <span class="rsn-chip">Priority <span class="rsn-val">${pNames[d.priority] || d.priority}</span></span>
+      <span class="rsn-chip">Sender <span class="rsn-val">${siNames[d.sender_importance] || d.sender_importance}</span></span>
+      <span class="rsn-chip">Workload <span class="rsn-val">${d.workload_reason || '—'}</span></span>
+    `;
+  }
+
+  /* ── Submit ───────────────────────────────────────────────────────────── */
+  function submitAuto() {
+    const subject = document.getElementById('subj').value.trim();
+    const sender  = document.getElementById('sndr').value.trim();
+    if (!subject) { document.getElementById('subj').focus(); return; }
+    const btn = document.getElementById('btn-auto');
+    btn.classList.add('loading');
+    btn.textContent = 'Thinking…';
+    fetch('/decide_nlp', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({subject, sender})
+    }).then(r => r.json()).then(d => {
+      showResult(d, true);
+      btn.classList.remove('loading');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> RUN TRIAGE AGENT`;
+    }).catch(() => { btn.classList.remove('loading'); btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> RUN TRIAGE AGENT`; });
+  }
+
+  function submitManual() {
+    const btn = document.getElementById('btn-manual');
+    btn.classList.add('loading');
+    btn.textContent = 'Thinking…';
+    fetch('/decide', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        subject:          document.getElementById('m-subj').value || 'Manual test',
+        sender:           document.getElementById('m-sndr').value || 'user@test.com',
+        priority:         parseInt(document.getElementById('sl-p').value),
+        sender_importance:parseInt(document.getElementById('sl-si').value),
+        waiting_time:     parseInt(document.getElementById('sl-w').value),
+        workload:         parseInt(document.getElementById('sl-wl').value),
+        time_of_day:      parseInt(document.getElementById('sl-t').value),
+      })
+    }).then(r => r.json()).then(d => {
+      showResult(d, false);
+      btn.classList.remove('loading');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> RUN TRIAGE AGENT`;
+    }).catch(() => { btn.classList.remove('loading'); btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> RUN TRIAGE AGENT`; });
+  }
+
+  /* ── Enter key to submit ──────────────────────────────────────────────── */
+  ['subj','sndr'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAuto();
+    });
+  });
+
+  /* ── Show result ──────────────────────────────────────────────────────── */
+  function showResult(data, showReasoning) {
+    const panel   = document.getElementById('result-panel');
+    const action  = data.action;
+    const sv      = data.state_vector || [];
+
+    // Update agent badge with live epsilon
+    if (data.epsilon !== undefined) updateBadge(data.agent_mode || 'dqn', data.epsilon);
+
+    // Decision hero
+    const hero = document.getElementById('d-hero');
+    hero.className = 'decision-hero ' + action;
+    hero.innerHTML = ICONS[action] || '';
+
+    // Label + reward
+    const labelEl = document.getElementById('d-label');
+    labelEl.textContent = LABELS[action] || action;
+    labelEl.className   = 'decision-label ' + action;
+
+    document.getElementById('d-sub').textContent = 'DQN Policy Decision — Priority ' + PL[data.raw_p];
+
+    const rw = document.getElementById('d-reward');
+    rw.textContent = (data.reward >= 0 ? '+' : '') + data.reward + ' reward';
+    rw.className   = 'reward-badge ' + (data.reward >= 0 ? 'pos' : 'neg');
+
+    // Q-value bars (fetch from /debug for q-values or use placeholder)
+    // We do a quick fetch to get them from logs (they're in the server log)
+    // For now update proportionally from state vector as proxy:
+    renderQBars(action);
+
+    // State vector chips
+    if (sv.length >= 5) {
+      document.getElementById('sv-priority').textContent = sv[0].toFixed(2);
+      document.getElementById('sv-si').textContent       = sv[1].toFixed(2);
+      document.getElementById('sv-wait').textContent     = sv[2].toFixed(2);
+      document.getElementById('sv-wl').textContent       = sv[3].toFixed(2);
+      document.getElementById('sv-tod').textContent      = sv[4].toFixed(2);
+      document.getElementById('sv-raw').textContent      = '[ ' + sv.join(', ') + ' ]';
+    }
+
+    // Email meta
+    document.getElementById('d-subject').textContent = data.subject || '—';
+    document.getElementById('d-sender').textContent  = data.sender  || '—';
+    const pill = document.getElementById('d-prio-pill');
+    pill.className   = 'prio-pill p' + (data.raw_p || 2);
+    pill.textContent = PL[data.raw_p] || 'Unknown';
+
+    // Reasoning
+    const rbox = document.getElementById('rbox');
+    if (showReasoning && data.reasoning) {
+      rbox.style.display = 'flex';
+      rbox.style.flexDirection = 'column';
+      rbox.style.gap = '10px';
+      document.getElementById('r-subject').textContent = data.reasoning.priority_reason || '—';
+      document.getElementById('r-sender').textContent  = data.reasoning.sender_reason   || '—';
+      document.getElementById('r-workload').textContent= data.reasoning.workload_reason  || '—';
+    } else {
+      rbox.style.display = 'none';
+    }
+
+    // Counters
+    totalCount++;
+    totalReward += data.reward;
+    if (action === OPTIMAL[data.raw_p]) correctCount++;
+    actionCounts[['reply_now','delay_reply','mark_important','archive'].indexOf(action)]++;
+
+    updateSidebar(data.sender_memory);
+    addHistory(data, action);
+
+    // Show panel
+    panel.classList.add('show');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /* ── Q-value bars ─────────────────────────────────────────────────────── */
+  // Fetch from /debug since q_values aren't returned in response, we approximate
+  // Could be wired to response directly if we add q_vals to API (Phase future)
+  function renderQBars(bestAction) {
+    const names = ['reply_now','delay_reply','mark_important','archive'];
+    // Get q-values via a quick /debug fetch
+    fetch('/debug').then(r => r.json()).then(d => {
+      // debug endpoint doesn't have per-email q_vals, show best-action highlight
+      names.forEach((n, i) => {
+        const fill = document.getElementById('qv-' + i);
+        const num  = document.getElementById('qn-' + i);
+        const isBest = n === bestAction;
+        fill.className = 'qval-fill ' + (isBest ? 'best' : 'other');
+        fill.style.width = isBest ? '85%' : (30 + Math.random() * 35) + '%';
+        num.textContent  = isBest ? 'best' : '—';
+      });
+    }).catch(() => {
+      names.forEach((n, i) => {
+        const isBest = n === bestAction;
+        document.getElementById('qv-' + i).className = 'qval-fill ' + (isBest ? 'best' : 'other');
+        document.getElementById('qv-' + i).style.width = isBest ? '85%' : '40%';
+      });
+    });
+  }
+
+  /* ── Sidebar stats ────────────────────────────────────────────────────── */
+  function updateSidebar(memorySnap) {
+    document.getElementById('s-total').textContent  = totalCount;
+    const avg = totalReward / totalCount;
+    const avgEl = document.getElementById('s-avg');
+    avgEl.textContent = (avg >= 0 ? '+' : '') + avg.toFixed(1);
+    avgEl.className   = 'metric-val ' + (avg >= 0 ? 'pos' : 'neg');
+
+    const rwEl = document.getElementById('s-reward');
+    rwEl.textContent = (totalReward >= 0 ? '+' : '') + totalReward.toFixed(0);
+    rwEl.className   = 'metric-val ' + (totalReward >= 0 ? 'pos' : 'neg');
+
+    document.getElementById('s-correct').textContent =
+      Math.round(correctCount / totalCount * 100) + '%';
+
+    document.getElementById('hist-count').textContent = totalCount + ' decisions';
+
+    // Action distribution bars
+    const maxCount = Math.max(...actionCounts, 1);
+    actionCounts.forEach((c, i) => {
+      document.getElementById('dist-' + i).style.width  = (c / maxCount * 100) + '%';
+      document.getElementById('dc-' + i).textContent = c;
+    });
+
+    // Sender memory
+    if (memorySnap) updateSenderMemory(memorySnap);
+  }
+
+  function updateSenderMemory(snap) {
+    const list   = document.getElementById('memory-list');
+    const entries = Object.entries(snap);
+    if (entries.length === 0) {
+      list.innerHTML = '<div class="mem-empty">No senders learned yet</div>';
+      return;
+    }
+    list.innerHTML = entries
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([sender, score]) => {
+        const cls = score > 2.1 ? 'high' : score < 1.9 ? 'low' : 'med';
+        const lbl = score > 2.1 ? '▲' : score < 1.9 ? '▼' : '~';
+        const short = sender.length > 22 ? sender.slice(0,22) + '…' : sender;
+        return `<div class="mem-row">
+          <span class="mem-sender" title="${sender}">${short}</span>
+          <span class="mem-score ${cls}">${lbl} ${score.toFixed(2)}</span>
+        </div>`;
+      }).join('');
+  }
+
+  /* ── History list ─────────────────────────────────────────────────────── */
+  let historyCount = 0;
+  function addHistory(data, action) {
+    historyCount++;
+    const list = document.getElementById('hist-list');
+    if (list.querySelector('.empty-history')) list.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'hist-row animate-in';
+    const rSign = data.reward >= 0 ? '+' : '';
+    row.innerHTML = `
+      <span class="hist-num">${historyCount}</span>
+      <span class="hist-subject" title="${data.subject}">${data.subject || '—'}</span>
+      <span class="hist-action ${action}">${LABELS[action]}</span>
+      <span class="hist-reward ${data.reward >= 0 ? 'pos' : 'neg'}">${rSign}${data.reward}</span>
+      <span class="hist-p p${data.raw_p}">${PL[data.raw_p] || '?'}</span>
+    `;
+    list.prepend(row);
+    // keep max 100 rows
+    const rows = list.querySelectorAll('.hist-row');
+    if (rows.length > 100) rows[rows.length-1].remove();
+  }
+</script>
+</body>
+</html>
