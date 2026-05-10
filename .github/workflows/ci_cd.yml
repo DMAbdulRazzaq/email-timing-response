@@ -111,6 +111,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase Repository Name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
       - name: Build and push staging image
         uses: docker/build-push-action@v5
         with:
@@ -118,11 +121,11 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:staging
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ env.REPO }}:staging
+            ghcr.io/${{ env.REPO }}:${{ github.sha }}
 
       - name: Deploy to staging server
         # Replace with your actual deployment command (ssh, kubectl, fly.io, etc.)
         run: |
-          echo "Deploying ghcr.io/${{ github.repository }}:${{ github.sha }} to staging"
+          echo "Deploying ghcr.io/${{ env.REPO }}:${{ github.sha }} to staging"
           # Example: ssh deploy@staging.host "docker pull ... && docker restart app"
