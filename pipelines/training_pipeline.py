@@ -1,123 +1,65 @@
-"""
-End-to-end training pipeline.
-
-Wires together: simulator → environment → agent → trainer → model persistence.
-
-Usage:
-    python pipelines/training_pipeline.py
-    python pipelines/training_pipeline.py --episodes 5000 --source synthetic
-"""
-
 import argparse
 import os
 import sys
-import time
-
-import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from agent.dqn import DQNAgent
 from config import Config
-from environment.email_env import EmailEnvironment
-from monitoring.logging_config import get_logger
-from simulation.simulator import EmailSimulator
-from simulation.sources.enron import EnronSource
-from simulation.sources.synthetic import SyntheticEmailSource
-from training.trainer import Trainer
+from monitoring.model_registry import (
+    DQN_MODEL_NAME,
+    QL_MODEL_NAME,
+    compare_runs,
+    promote_model,
+    register_dqn_model,
+    register_ql_model,
+)
+from training.trainer import train_dqn, train_q_learning
 
-logger = get_logger(__name__)
 
-
-def parse_args():
-    p = argparse.ArgumentParser(description="Email Timing Response — Training Pipeline")
-    p.add_argument("--episodes", type=int, default=Config.EPISODES)
-    p.add_argument(
-        "--source",
-        default="synthetic",
-        choices=["synthetic", "enron"],
-        help="Email data source for the simulator",
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Email Timing Response training pipeline"
     )
-    p.add_argument("--output-dir", default=Config.MODEL_DIR)
-    p.add_argument("--checkpoint-every", type=int, default=Config.CHECKPOINT_EVERY)
-    p.add_argument("--log-every", type=int, default=Config.LOG_EVERY)
-    p.add_argument("--tag", default=None, help="Optional version tag for saved model")
-    return p.parse_args()
+    parser.add_argument("--agent", choices=["dqn", "q_learning"], default="dqn")
+    parser.add_argument("--episodes", type=int, default=Config.EPISODES)
+    parser.add_argument("--source", choices=["synthetic", "enron"], default="synthetic")
+    parser.add_argument("--run-name", default=None)
+    parser.add_argument("--register", action="store_true")
+    parser.add_argument("--promote", action="store_true")
+    return parser.parse_args()
 
 
-def run(args=None):
-    if args is None:
-        args = parse_args()
+def _register_model(agent_type: str, run_id: str):
+    if agent_type == "dqn":
+        return register_dqn_model(run_id)
+    return register_ql_model(run_id)
 
-    logger.info("=== Training Pipeline Started ===")
-    logger.info("episodes=%d  source=%s  output=%s", args.episodes, args.source, args.output_dir)
 
-    # ── Build pipeline ────────────────────────────────────────────────────────
-    if args.source == "synthetic":
-        source = SyntheticEmailSource()
-    elif args.source == "enron":
-        source = EnronSource()
+def run(args: argparse.Namespace | None = None):
+    args = args or parse_args()
+    if args.agent == "dqn":
+        result = train_dqn(args.episodes, args.run_name, args.source)
+        model_name = DQN_MODEL_NAME
     else:
-        raise ValueError(f"Unknown source: {args.source}")
+        result = train_q_learning(args.episodes, args.run_name, args.source)
+        model_name = QL_MODEL_NAME
 
-    simulator = EmailSimulator(source)
-    env = EmailEnvironment(simulator, max_steps=Config.MAX_STEPS)
-    agent = DQNAgent(
-        state_size=Config.STATE_SIZE,
-        action_size=Config.ACTION_SIZE,
-        alpha=Config.DQN_ALPHA,
-        gamma=Config.DQN_GAMMA,
-        epsilon=Config.DQN_EPSILON,
-        epsilon_min=Config.DQN_EPSILON_MIN,
-        epsilon_decay=Config.DQN_EPSILON_DECAY,
-        batch_size=Config.DQN_BATCH_SIZE,
-        target_update=Config.DQN_TARGET_UPDATE,
-        buffer_capacity=Config.DQN_BUFFER_CAP,
-    )
+    registered_model = None
+    if args.register:
+        registered_model = _register_model(args.agent, result["run_id"])
+        print(
+            "Registered model "
+            f"{registered_model.name} version {registered_model.version}"
+        )
 
-    trainer = Trainer(
-        env=env,
-        agent=agent,
-        episodes=args.episodes,
-        log_every=args.log_every,
-        checkpoint_every=args.checkpoint_every,
-        checkpoint_dir=args.output_dir,
-    )
+    if args.promote:
+        if registered_model is None:
+            registered_model = _register_model(args.agent, result["run_id"])
+        promote_model(model_name, registered_model.version)
+        print(f"Promoted {model_name} version {registered_model.version} to Production")
 
-    # ── Train ─────────────────────────────────────────────────────────────────
-    t0 = time.time()
-    reward_history = trainer.run()
-    elapsed = (time.time() - t0) / 60
-
-    # ── Save versioned weights ────────────────────────────────────────────────
-    os.makedirs(args.output_dir, exist_ok=True)
-    version_tag = args.tag or time.strftime("%Y%m%d_%H%M%S")
-    weights_path = os.path.join(args.output_dir, f"dqn_weights_{version_tag}.pt")
-
-    checkpoint = {
-        "policy_state_dict": agent._policy_net.state_dict(),
-        "target_state_dict": agent._target_net.state_dict(),
-        "epsilon": agent.epsilon,
-        "state_size": Config.STATE_SIZE,
-        "action_size": Config.ACTION_SIZE,
-        "episodes_trained": args.episodes,
-        "version": version_tag,
-        "reward_history_tail": reward_history[-100:],
-    }
-    torch.save(checkpoint, weights_path)
-    logger.info("Weights saved → %s", weights_path)
-
-    # Also overwrite the default path for the inference service
-    torch.save(checkpoint, Config.DQN_WEIGHTS_PATH)
-    logger.info("Default weights updated → %s", Config.DQN_WEIGHTS_PATH)
-
-    avg_reward = sum(reward_history[-500:]) / min(500, len(reward_history))
-    logger.info(
-        "=== Training Complete | %.1f min | avg_reward(last500)=%.2f ===",
-        elapsed,
-        avg_reward,
-    )
-    return reward_history
+    print(compare_runs(top_n=5))
+    return result
 
 
 if __name__ == "__main__":

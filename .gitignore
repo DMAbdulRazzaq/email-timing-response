@@ -25,6 +25,8 @@ env/
 # models/*.pt
 # models/*.pkl
 # models/checkpoint_*.pkl
+*.pt
+mlruns/
 
 # Logs
 #logs/
