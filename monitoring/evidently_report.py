@@ -78,7 +78,17 @@ def main():
     
     dark_css = """
     <style>
-        body, .MuiPaper-root { background-color: #020617 !important; color: #f1f5f9 !important; }
+        body, .MuiPaper-root { 
+            background-color: #020617 !important; 
+            color: #f1f5f9 !important; 
+        }
+        body {
+            background-image:
+                radial-gradient(ellipse 80% 60% at 10% 0%, rgba(59,130,246,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 90% 100%, rgba(168,85,247,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 50% 50% at 50% 50%, rgba(34,197,94,0.03) 0%, transparent 70%) !important;
+            background-attachment: fixed !important;
+        }
         .MuiTypography-root { color: #f1f5f9 !important; }
         .MuiTableCell-root { color: #f1f5f9 !important; border-bottom: 1px solid rgba(255,255,255,0.07) !important; }
         .MuiGrid-root { background-color: transparent !important; }
