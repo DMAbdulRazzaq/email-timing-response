@@ -56,3 +56,20 @@ Thumbs.db
 
 # Reward curve images (generated artefacts)
 # reward_curve*.png
+# Logs
+logs/
+*.log
+
+# Model artifacts
+models/*.pkl
+models/*.pt
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# MLflow
+mlruns/
