@@ -3,7 +3,7 @@ import sys
 import warnings
 
 import pandas as pd
-from evidently.metric_preset import DataDriftPreset, DataQualityPreset
+from evidently.metric_preset import DataDriftPreset
 from evidently.report import Report
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -56,13 +56,8 @@ def main():
     print("2. Generating Current Data (With Simulated Drift)")
     current_data = generate_data(1000, drift_multiplier=1.3)
 
-    print("3. Generating Evidently Data Drift & Quality Report...")
-    report = Report(
-        metrics=[
-            DataQualityPreset(),
-            DataDriftPreset(),
-        ]
-    )
+    print("3. Generating Evidently Data Drift Report...")
+    report = Report(metrics=[DataDriftPreset()])
     report.run(reference_data=reference_data, current_data=current_data)
 
     os.makedirs("logs", exist_ok=True)
