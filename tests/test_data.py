@@ -104,6 +104,7 @@ class TestEmailEnvironment:
     @pytest.fixture
     def env(self):
         from simulation.sources.synthetic import SyntheticEmailSource
+
         sim = EmailSimulator(SyntheticEmailSource(seed=42))
         return EmailEnvironment(sim, max_steps=10)
 
