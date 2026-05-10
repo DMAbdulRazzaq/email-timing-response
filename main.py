@@ -7,7 +7,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from agent.dqn import DQNAgent, QNetwork
+from agent.dqn import DQNAgent
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _MODELS = os.path.join(_HERE, "models")

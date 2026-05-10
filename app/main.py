@@ -39,7 +39,7 @@ metrics = MetricsTracker()
 
 app = FastAPI(
     title="Email Timing Response — Inference API",
-    description="DQN-based email action recommender. Predicts reply_now / delay_reply / mark_important / archive.",
+    description="DQN-based email action recommender.",
     version="1.0.0",
 )
 
@@ -69,7 +69,6 @@ def _load_agent(weights_path: Optional[str] = None, pkl_path: Optional[str] = No
     from agent.dqn import DQNAgent, QNetwork  # noqa: F401 — needed for pickle
 
     wp = weights_path or Config.DQN_WEIGHTS_PATH
-    pp = pkl_path or Config.DQN_MODEL_PATH
 
     if os.path.exists(wp):
         ckpt = torch.load(wp, map_location="cpu", weights_only=False)

@@ -6,7 +6,6 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from data.email_data import Email
 
 # Assuming these are available in your project namespace
 from main import get_trained_agent
@@ -81,25 +80,25 @@ def apply_action_to_gmail(service, msg_id, action_label):
             # Remove INBOX label to archive it
             body = {"removeLabelIds": ["INBOX"]}
             service.users().messages().modify(userId="me", id=msg_id, body=body).execute()
-            print(f"  -> Action: Archived email.")
+            print("  -> Action: Archived email.")
 
         elif action_label == "mark_important":
             # Add IMPORTANT label
             body = {"addLabelIds": ["IMPORTANT"]}
             service.users().messages().modify(userId="me", id=msg_id, body=body).execute()
-            print(f"  -> Action: Marked as IMPORTANT.")
+            print("  -> Action: Marked as IMPORTANT.")
 
         elif action_label == "delay_reply":
             # Just add our own custom label or star it, or leave it in inbox
             body = {"addLabelIds": ["STARRED"]}
             service.users().messages().modify(userId="me", id=msg_id, body=body).execute()
-            print(f"  -> Action: Starred/Delayed reply.")
+            print("  -> Action: Starred/Delayed reply.")
 
         elif action_label == "reply_now":
             # Star it and mark important, or keep in inbox
             body = {"addLabelIds": ["STARRED", "IMPORTANT"]}
             service.users().messages().modify(userId="me", id=msg_id, body=body).execute()
-            print(f"  -> Action: Flagged for IMMEDIATE REPLY.")
+            print("  -> Action: Flagged for IMMEDIATE REPLY.")
 
         # Finally, mark the email as read so we don't process it again next loop
         service.users().messages().modify(

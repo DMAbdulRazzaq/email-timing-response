@@ -74,7 +74,7 @@ def make_source():
     return EnronEmailSource(ENRON_DIR, max_emails=50_000)
 
 
-print(f"\nLoading Enron emails...")
+print("\nLoading Enron emails...")
 
 # ── Train Q-Learning ──────────────────────────────────────────────────────────
 print("\n" + "=" * 60)

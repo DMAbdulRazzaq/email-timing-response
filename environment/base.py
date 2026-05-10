@@ -15,7 +15,6 @@ class BaseEnvironment(ABC):
     @abstractmethod
     def reset(self) -> np.ndarray:
         """Reset environment to start of episode. Returns initial state."""
-        pass
 
     @abstractmethod
     def step(self, action: int) -> tuple[np.ndarray, float, bool]:
@@ -25,4 +24,3 @@ class BaseEnvironment(ABC):
             reward     : float reward for this action
             done       : True when episode ends
         """
-        pass

@@ -3,7 +3,6 @@ import numpy as np
 
 from agent.base import BaseAgent
 from environment.base import BaseEnvironment
-from environment.reward import RewardCalculator
 
 
 class Evaluator:

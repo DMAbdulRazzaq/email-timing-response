@@ -14,7 +14,6 @@ Usage:
 import json
 import os
 from collections import deque
-from typing import Optional
 
 import numpy as np
 

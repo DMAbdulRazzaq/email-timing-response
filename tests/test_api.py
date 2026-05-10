@@ -7,9 +7,8 @@ Run: pytest tests/test_api.py -v
 
 import os
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 

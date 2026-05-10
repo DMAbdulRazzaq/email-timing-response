@@ -34,7 +34,7 @@ jobs:
         run: isort --check-only --profile black .
 
       - name: Flake8 style check
-        run: flake8 . --max-line-length 100 --exclude=.git,__pycache__,train_colab.ipynb
+        run: flake8 . --max-line-length 100 --extend-ignore=E402,E203 --exclude=.git,__pycache__,train_colab.ipynb,venv
 
   # ── 2. Unit & integration tests ────────────────────────────────────────────
   test:

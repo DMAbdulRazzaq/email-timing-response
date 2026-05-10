@@ -1,7 +1,7 @@
 """
-Trains the DQN locally on synthetic emails with the new normalized 
+Trains the DQN locally on synthetic emails with the new normalized
 state space, contextual reward structure, and score-based NLP.
-Because the state vector is properly normalized now, this will 
+Because the state vector is properly normalized now, this will
 converge to perfect behavior in just ~10k episodes (seconds).
 """
 
@@ -13,12 +13,9 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
-import numpy as np
-import torch
 
 from agent.dqn import DQNAgent
 from environment.email_env import EmailEnvironment
-from environment.reward import RewardCalculator
 from simulation.simulator import EmailSimulator
 from simulation.sources.synthetic import SyntheticEmailSource
 
