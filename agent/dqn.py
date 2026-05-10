@@ -67,6 +67,7 @@ class DQNAgent(BaseAgent):
     ):
         self.state_size = state_size
         self.action_size = action_size
+        self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min

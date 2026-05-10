@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 import pandas as pd
 from evidently.metric_preset import DataDriftPreset, DataQualityPreset
@@ -10,6 +11,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from environment.email_env import EmailEnvironment
 from simulation.simulator import EmailSimulator
 from simulation.sources.synthetic import SyntheticEmailSource
+
+# Suppress scipy divide by zero warnings caused by empty bins in data drift statistical tests
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 FEATURE_NAMES = [
     "priority_norm",
@@ -65,7 +69,7 @@ def main():
     out_path = "logs/evidently_drift_report.html"
     report.save_html(out_path)
 
-    print(f"✅ Report saved successfully: {out_path}")
+    print(f"[SUCCESS] Report saved successfully: {out_path}")
     print("Open this file in your browser to view interactive drift metrics.")
 
 

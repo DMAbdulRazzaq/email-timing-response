@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/Neil/Desktop/email_timing_response/mlruns/392988011302819525/274fabc103b8470cbbabab121cd7e045/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '392988011302819525'
+lifecycle_stage: active
+run_id: 274fabc103b8470cbbabab121cd7e045
+run_name: local_dqn
+run_uuid: 274fabc103b8470cbbabab121cd7e045
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778438031879
+status: 1
+tags: []
+user_id: Neil
