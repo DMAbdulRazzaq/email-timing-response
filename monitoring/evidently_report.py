@@ -57,12 +57,45 @@ def main():
     current_data = generate_data(1000, drift_multiplier=1.3)
 
     print("3. Generating Evidently Data Drift Report...")
-    report = Report(metrics=[DataDriftPreset()])
+    from evidently.options import ColorOptions
+    color_scheme = ColorOptions(
+        primary_color="#22c55e",
+        fill_color="#06b6d4",
+        zero_line_color="#a855f7",
+        current_data_color="#06b6d4",
+        reference_data_color="#64748b"
+    )
+    report = Report(metrics=[DataDriftPreset()], options=[color_scheme])
     report.run(reference_data=reference_data, current_data=current_data)
 
     os.makedirs("logs", exist_ok=True)
     out_path = "logs/evidently_drift_report.html"
     report.save_html(out_path)
+
+    # Inject dark theme CSS to match index.html
+    with open(out_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    
+    dark_css = """
+    <style>
+        body, .MuiPaper-root { background-color: #020617 !important; color: #f1f5f9 !important; }
+        .MuiTypography-root { color: #f1f5f9 !important; }
+        .MuiTableCell-root { color: #f1f5f9 !important; border-bottom: 1px solid rgba(255,255,255,0.07) !important; }
+        .MuiGrid-root { background-color: transparent !important; }
+        .MuiCard-root { background-color: #0f172a !important; border: 1px solid rgba(255,255,255,0.07) !important; box-shadow: none !important; }
+        svg text { fill: #94a3b8 !important; }
+        .MuiButtonBase-root { color: #06b6d4 !important; }
+        .MuiChip-root { background-color: rgba(34,197,94,0.15) !important; color: #22c55e !important; }
+        .MuiAccordionSummary-root { background-color: #0a0f1e !important; color: #f1f5f9 !important; }
+        .MuiAccordionDetails-root { background-color: #020617 !important; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+    """
+    html_content = html_content.replace("</head>", f"{dark_css}</head>")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
     print(f"[SUCCESS] Report saved successfully: {out_path}")
     print("Open this file in your browser to view interactive drift metrics.")
