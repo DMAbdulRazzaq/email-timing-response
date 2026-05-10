@@ -1,8 +1,9 @@
 import random
+
 import numpy as np
 import pandas as pd
 
-from data.email_data import Email, SENDER_POOLS, SUBJECT_POOLS, PRIORITY_MAP
+from data.email_data import PRIORITY_MAP, SENDER_POOLS, SUBJECT_POOLS, Email
 from simulation.sources.base import EmailSource
 
 

@@ -5,9 +5,9 @@ train_now.py
 - Saves both models to models/qlearning.pkl and models/dqn.pkl
 """
 
+import io
 import os
 import sys
-import io
 
 # Force UTF-8 output so logging never crashes on Windows
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -16,14 +16,14 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="repla
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_DIR)
 
-import urllib.request
 import tarfile
+import urllib.request
 
-from config import Config
-from simulation.simulator import EmailSimulator
-from environment.email_env import EmailEnvironment
-from agent.q_learning import QLearningAgent
 from agent.dqn import DQNAgent
+from agent.q_learning import QLearningAgent
+from config import Config
+from environment.email_env import EmailEnvironment
+from simulation.simulator import EmailSimulator
 from training.trainer import Trainer
 
 ENRON_DIR = os.path.join(PROJECT_DIR, "enron_dataset")

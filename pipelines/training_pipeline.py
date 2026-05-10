@@ -17,14 +17,14 @@ import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from config import Config
 from agent.dqn import DQNAgent
+from config import Config
 from environment.email_env import EmailEnvironment
-from simulation.simulator import EmailSimulator
-from training.trainer import Trainer
 from monitoring.logging_config import get_logger
-from simulation.sources.synthetic import SyntheticEmailSource
+from simulation.simulator import EmailSimulator
 from simulation.sources.enron import EnronSource
+from simulation.sources.synthetic import SyntheticEmailSource
+from training.trainer import Trainer
 
 logger = get_logger(__name__)
 

@@ -5,19 +5,22 @@ Because the state vector is properly normalized now, this will
 converge to perfect behavior in just ~10k episodes (seconds).
 """
 
-import os, sys, pickle, time
+import os
+import pickle
+import sys
+import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
-import torch
 import numpy as np
+import torch
 
-from simulation.sources.synthetic import SyntheticEmailSource
-from simulation.simulator import EmailSimulator
-from environment.email_env import EmailEnvironment
 from agent.dqn import DQNAgent
+from environment.email_env import EmailEnvironment
 from environment.reward import RewardCalculator
+from simulation.simulator import EmailSimulator
+from simulation.sources.synthetic import SyntheticEmailSource
 
 EPISODES = 12_000
 LOG_EVERY = 2_000

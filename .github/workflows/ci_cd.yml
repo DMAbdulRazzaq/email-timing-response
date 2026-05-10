@@ -25,7 +25,7 @@ jobs:
           cache: pip
 
       - name: Install lint dependencies
-        run: pip install flake8 black isort
+        run: pip install black==24.4.2 isort==5.13.2 flake8==7.1.0
 
       - name: Black formatting check
         run: black --check --line-length 100 .

@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+
 from data.email_data import Email
 
 

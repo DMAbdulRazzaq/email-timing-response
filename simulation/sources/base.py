@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from data.email_data import Email
 
 

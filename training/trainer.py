@@ -1,8 +1,9 @@
-import pickle
 import os
+import pickle
 import time
-from environment.base import BaseEnvironment
+
 from agent.base import BaseAgent
+from environment.base import BaseEnvironment
 from utils.logger import Logger
 
 

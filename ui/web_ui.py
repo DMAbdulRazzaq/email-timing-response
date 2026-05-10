@@ -2,19 +2,21 @@
 web_ui.py  —  Flask inference server for the RL Email Triage Agent.
 """
 
-import sys, os
+import os
+import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, jsonify, render_template, request
+
 from config import Config
 from data.email_data import Email
 from environment.reward import RewardCalculator
+from main import get_trained_agent
 from simulation.sources.nlp_extractor import NLPEmailExtractor
 from simulation.sources.sender_memory import SenderMemory
-from main import get_trained_agent
 
 app = Flask(__name__)
 extractor = NLPEmailExtractor()

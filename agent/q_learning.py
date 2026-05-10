@@ -1,6 +1,8 @@
-import numpy as np
 import pickle
 from collections import defaultdict
+
+import numpy as np
+
 from agent.base import BaseAgent
 
 

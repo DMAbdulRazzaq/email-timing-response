@@ -1,4 +1,5 @@
 import random
+
 from data.email_data import Email
 from data.enron_loader import EnronLoader, RawEmail
 from simulation.sources.base import EmailSource

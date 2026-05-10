@@ -6,6 +6,7 @@ Run: pytest tests/test_data.py -v
 
 import os
 import sys
+
 import numpy as np
 import pytest
 
@@ -15,7 +16,6 @@ from data.email_data import Email
 from environment.email_env import EmailEnvironment
 from environment.reward import RewardCalculator
 from simulation.simulator import EmailSimulator
-
 
 # ── Email dataclass ───────────────────────────────────────────────────────────
 

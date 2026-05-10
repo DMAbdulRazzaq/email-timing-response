@@ -1,8 +1,9 @@
 import os
-import re
 import random
-import pandas as pd
+import re
 from dataclasses import dataclass
+
+import pandas as pd
 
 
 @dataclass

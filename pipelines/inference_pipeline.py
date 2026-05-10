@@ -22,9 +22,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from config import Config
 from data.email_data import Email
+from monitoring.drift_detection import DriftDetector
 from monitoring.logging_config import get_logger
 from monitoring.metrics import MetricsTracker
-from monitoring.drift_detection import DriftDetector
 
 logger = get_logger(__name__)
 

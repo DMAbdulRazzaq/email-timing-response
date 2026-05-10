@@ -1,4 +1,9 @@
-import sys, os, pickle, io, torch
+import io
+import os
+import pickle
+import sys
+
+import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

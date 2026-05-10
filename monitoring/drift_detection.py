@@ -13,9 +13,10 @@ Usage:
 
 import json
 import os
-import numpy as np
 from collections import deque
 from typing import Optional
+
+import numpy as np
 
 from monitoring.logging_config import get_logger
 

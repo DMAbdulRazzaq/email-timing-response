@@ -1,9 +1,9 @@
 import numpy as np
 
+from data.email_data import Email
 from environment.base import BaseEnvironment
 from environment.reward import RewardCalculator
 from simulation.simulator import EmailSimulator
-from data.email_data import Email
 
 
 class EmailEnvironment(BaseEnvironment):

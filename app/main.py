@@ -11,24 +11,24 @@ Endpoints:
 import os
 import sys
 import time
-import torch
-import numpy as np
 from typing import Optional
 
+import numpy as np
+import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 # Ensure project root is on the path when running from inside app/
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from config import Config
-from data.email_data import Email
 from app.schemas import (
     EmailRequest,
-    PredictionResponse,
     HealthResponse,
     ModelVersionResponse,
+    PredictionResponse,
 )
+from config import Config
+from data.email_data import Email
 from monitoring.logging_config import get_logger
 from monitoring.metrics import MetricsTracker
 

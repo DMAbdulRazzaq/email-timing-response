@@ -1,8 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from environment.base import BaseEnvironment
 from agent.base import BaseAgent
+from environment.base import BaseEnvironment
 from environment.reward import RewardCalculator
 
 

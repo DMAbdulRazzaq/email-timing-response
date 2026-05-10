@@ -1,14 +1,16 @@
 import os
 import time
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from data.email_data import Email
+
 # Assuming these are available in your project namespace
 from main import get_trained_agent
 from simulation.sources.nlp_extractor import NLPEmailExtractor
-from data.email_data import Email
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
