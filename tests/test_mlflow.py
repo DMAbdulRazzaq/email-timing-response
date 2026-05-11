@@ -35,9 +35,9 @@ class TestMLflowConfig:
 
         uri = MLflowConfig.TRACKING_URI
         # Should be a file URI or an HTTP URI
-        assert uri.startswith("file:///") or uri.startswith("http"), (
-            f"Tracking URI should start with file:/// or http, got: {uri}"
-        )
+        assert uri.startswith("file:///") or uri.startswith(
+            "http"
+        ), f"Tracking URI should start with file:/// or http, got: {uri}"
 
     def test_experiment_names_are_strings(self):
         from mlflow_config import MLflowConfig
@@ -114,9 +114,7 @@ class TestMLflowLogger:
         from monitoring.mlflow_logger import log_episode_metrics
 
         with patch("monitoring.mlflow_logger.mlflow") as mock_mlflow:
-            log_episode_metrics(
-                episode=200, reward=3.0, epsilon=0.3, avg_reward=4.5, loss=0.01
-            )
+            log_episode_metrics(episode=200, reward=3.0, epsilon=0.3, avg_reward=4.5, loss=0.01)
             metrics = mock_mlflow.log_metrics.call_args[0][0]
             assert "avg_reward" in metrics
             assert "loss" in metrics

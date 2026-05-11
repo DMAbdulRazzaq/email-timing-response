@@ -89,9 +89,7 @@ def log_reward_curve(
 
         episodes = range(1, len(reward_history) + 1)
         window = min(50, len(reward_history) // 5 or 1)
-        rolling = np.convolve(
-            reward_history, np.ones(window) / window, mode="valid"
-        )
+        rolling = np.convolve(reward_history, np.ones(window) / window, mode="valid")
 
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.plot(
@@ -104,7 +102,7 @@ def log_reward_curve(
         )
         if len(rolling) > 0:
             ax.plot(
-                episodes[window - 1:],
+                episodes[window - 1 :],
                 rolling,
                 color="#38bdf8",
                 linewidth=2.2,
@@ -147,9 +145,7 @@ def log_drift_report(drift_report: Dict[str, Any]) -> None:
     # Log per-feature PSI
     for feat_name, feat_data in drift_report.get("features", {}).items():
         mlflow.log_metric(f"drift_psi_{feat_name}", feat_data.get("psi", 0.0))
-        mlflow.log_metric(
-            f"drift_z_{feat_name}", abs(feat_data.get("z_score", 0.0))
-        )
+        mlflow.log_metric(f"drift_z_{feat_name}", abs(feat_data.get("z_score", 0.0)))
 
     # Log full report as JSON artifact
     tmp_dir = tempfile.mkdtemp()

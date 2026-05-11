@@ -132,9 +132,7 @@ def run_batch(agent, emails: list, output_path: str, version: str, use_mlflow: b
             )
 
             init_mlflow(MLflowConfig.EXPERIMENT_INFERENCE)
-            with mlflow.start_run(
-                run_name=f"inference-batch-{time.strftime('%Y%m%d_%H%M%S')}"
-            ):
+            with mlflow.start_run(run_name=f"inference-batch-{time.strftime('%Y%m%d_%H%M%S')}"):
                 mlflow.set_tag("model_version", version)
                 mlflow.set_tag("batch_size", len(emails))
                 mlflow.log_param("num_emails", len(emails))
