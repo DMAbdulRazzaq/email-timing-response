@@ -144,4 +144,4 @@ with mlflow.start_run(run_name=f"local-dqn-{time.strftime('%Y%m%d_%H%M%S')}"):
     mlflow.set_tag("script", "train_local_dqn")
 
     print(f"\n  Training finished in {elapsed:.1f} seconds  ->  {SAVE_PATH}")
-    print(f"  📊 MLflow run logged. View at: http://127.0.0.1:5050")
+    print("  📊 MLflow run logged. View at: http://127.0.0.1:5050")
