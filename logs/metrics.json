@@ -1,0 +1,10 @@
+{
+  "uptime_seconds": 0.0,
+  "total_predictions": 1,
+  "action_distribution": {
+    "reply_now": 1
+  },
+  "avg_confidence": 0.95,
+  "latency_p50_ms": 15.2,
+  "latency_p95_ms": 15.2
+}
