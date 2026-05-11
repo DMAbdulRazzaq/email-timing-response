@@ -48,7 +48,9 @@ def get_agent():
         # Start epsilon at 0.3 so the online learning buffer gets diverse samples.
         # Decays every 10 decisions via decay_epsilon() called in _decide().
         _agent.epsilon = 0.3
-        print("[INIT] Online learning enabled. epsilon = 0.3 (will decay over interactions)")
+        print(
+            "[INIT] Online learning enabled. epsilon = 0.3 (will decay over interactions)"
+        )
     return _agent
 
 
@@ -117,7 +119,9 @@ def _decide(email: Email):
         q_vals = [round(x, 3) for x in agent._policy_net(t)[0].tolist()]
 
     q_max = max(q_vals)
-    q_warn = "  *** Q-VALUE EXPLOSION — check training stability ***" if q_max > 500 else ""
+    q_warn = (
+        "  *** Q-VALUE EXPLOSION — check training stability ***" if q_max > 500 else ""
+    )
 
     print(
         f"\n[DECIDE] subject={email.subject!r:.45}  sender={email.sender!r:.30}\n"
@@ -191,7 +195,9 @@ def decide_nlp():
     # ── Compute real waiting time (arrival → now) ─────────────────────────────
     key = hash(f"{subject}|{sender}")
     arrival = _arrival_times.pop(key, None)  # pop → clear for next submission
-    waiting_mins = int((datetime.now() - arrival).total_seconds() / 60) if arrival else 0
+    waiting_mins = (
+        int((datetime.now() - arrival).total_seconds() / 60) if arrival else 0
+    )
 
     # ── Adapt sender importance via session memory ────────────────────────────
     rule_si = extractor._classify_sender(sender)

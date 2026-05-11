@@ -14,7 +14,12 @@ class Evaluator:
     """
 
     OPTIMAL_ACTIONS = {3: 0, 2: 2, 1: 3}  # priority → best action
-    ACTION_LABELS = {0: "reply_now", 1: "delay_reply", 2: "mark_important", 3: "archive"}
+    ACTION_LABELS = {
+        0: "reply_now",
+        1: "delay_reply",
+        2: "mark_important",
+        3: "archive",
+    }
 
     def __init__(self, env: BaseEnvironment, agent: BaseAgent):
         self._env = env
@@ -60,12 +65,17 @@ class Evaluator:
         print("\n── Evaluation Results ──────────────────────────────")
         print(f"  Mean reward   : {results['mean_reward']:+.2f}")
         print(f"  Decision acc  : {results['accuracy']}%")
-        print(f"  Reward range  : {results['min_reward']:+.2f}  →  {results['max_reward']:+.2f}")
+        print(
+            f"  Reward range  : {results['min_reward']:+.2f}  →  {results['max_reward']:+.2f}"
+        )
 
     # ── 2. learning curve ─────────────────────────────────────────
 
     def plot_rewards(
-        self, reward_history: list[float], window: int = 50, save_path: str = "reward_curve.png"
+        self,
+        reward_history: list[float],
+        window: int = 50,
+        save_path: str = "reward_curve.png",
     ) -> None:
         """
         Plot raw rewards + a rolling average (smoothed curve).
@@ -81,7 +91,12 @@ class Evaluator:
         fig, ax = plt.subplots(figsize=(10, 5))
 
         ax.plot(
-            episodes, reward_history, color="#94a3b8", alpha=0.4, linewidth=0.8, label="Raw reward"
+            episodes,
+            reward_history,
+            color="#94a3b8",
+            alpha=0.4,
+            linewidth=0.8,
+            label="Raw reward",
         )
         ax.plot(
             episodes[window - 1 :],

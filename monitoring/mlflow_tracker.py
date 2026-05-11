@@ -14,6 +14,8 @@ except ImportError:  # pragma: no cover - only used when deps are missing.
 
 
 EXPERIMENT_NAME = "email_timing_response"
+
+
 def _require_mlflow():
     if mlflow is None:
         raise ImportError(
