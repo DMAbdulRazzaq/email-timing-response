@@ -5,7 +5,8 @@ Loads the trained DQN agent and runs it over a stream of emails,
 writing action recommendations to a JSON Lines output file.
 
 Usage:
-    python pipelines/inference_pipeline.py --input emails.jsonl --output predictions.jsonl
+    python pipelines/inference_pipeline.py \
+        --input emails.jsonl --output predictions.jsonl
     python pipelines/inference_pipeline.py --demo   # runs 20 synthetic emails
 """
 

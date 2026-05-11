@@ -25,7 +25,7 @@ class Evaluator:
         self._env = env
         self._agent = agent
 
-    # ── 1. test run ───────────────────────────────────────────────
+    # 1. test run
 
     def evaluate(self, episodes: int = 100) -> dict:
         """
@@ -62,14 +62,15 @@ class Evaluator:
         }
 
     def print_results(self, results: dict) -> None:
-        print("\n── Evaluation Results ──────────────────────────────")
+        print("\n── Evaluation Results")
         print(f"  Mean reward   : {results['mean_reward']:+.2f}")
         print(f"  Decision acc  : {results['accuracy']}%")
         print(
-            f"  Reward range  : {results['min_reward']:+.2f}  →  {results['max_reward']:+.2f}"
+            f"  Reward range  : {results['min_reward']:+.2f}  "
+            f"→  {results['max_reward']:+.2f}"
         )
 
-    # ── 2. learning curve ─────────────────────────────────────────
+    # 2. learning curve
 
     def plot_rewards(
         self,
@@ -109,7 +110,11 @@ class Evaluator:
         ax.axhline(0, color="#475569", linewidth=0.8, linestyle="--")
         ax.set_xlabel("Episode", fontsize=12)
         ax.set_ylabel("Total Reward", fontsize=12)
-        ax.set_title("Q-Learning Agent — Reward vs Episodes", fontsize=14, pad=14)
+        ax.set_title(
+            "Q-Learning Agent — Reward vs Episodes",
+            fontsize=14,
+            pad=14,
+        )
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.2)
         fig.tight_layout()
@@ -117,7 +122,7 @@ class Evaluator:
         plt.close(fig)
         print(f"  Plot saved → {save_path}")
 
-    # ── helper ────────────────────────────────────────────────────
+    # helper
 
     @staticmethod
     def _rolling_mean(values: list[float], window: int) -> np.ndarray:
