@@ -14,12 +14,13 @@ A **Deep Q-Network (DQN)** reinforcement-learning agent that learns the optimal 
 3. [Project Structure](#project-structure)
 4. [Quick Start](#quick-start)
 5. [Training the Agent](#training-the-agent)
-6. [Running the Inference API](#running-the-inference-api)
-7. [Running Tests](#running-tests)
-8. [Docker Deployment](#docker-deployment)
-9. [Monitoring](#monitoring)
-10. [Model Versioning](#model-versioning)
-11. [CI/CD Pipeline](#cicd-pipeline)
+6. [MLflow Experiment Tracking](#mlflow-experiment-tracking)
+7. [Running the Inference API](#running-the-inference-api)
+8. [Running Tests](#running-tests)
+9. [Docker Deployment](#docker-deployment)
+10. [Monitoring](#monitoring)
+11. [Model Versioning](#model-versioning)
+12. [CI/CD Pipeline](#cicd-pipeline)
 
 ---
 
@@ -62,6 +63,15 @@ A **Deep Q-Network (DQN)** reinforcement-learning agent that learns the optimal 
   MLOPS LAYER
   ───────────
   GitHub Actions: Lint ──► Tests ──► Docker Build ──► Deploy (staging)
+
+  EXPERIMENT TRACKING
+  ───────────────────
+  MLflow: Params ──► Metrics ──► Artifacts ──► Model Registry
+          │              │            │
+          ▼              ▼            ▼
+     Hyperparams   Episode Rewards  Weights (.pt)
+     Source Info    Avg Reward       Reward Curves
+     Algorithm     Epsilon Decay    Drift Reports
 ```
 
 ### Component Responsibilities
@@ -75,6 +85,8 @@ A **Deep Q-Network (DQN)** reinforcement-learning agent that learns the optimal 
 | `training/trainer.py` | Episode loop with checkpointing |
 | `app/main.py` | FastAPI inference service |
 | `monitoring/` | Structured logging, metrics, drift detection |
+| `monitoring/mlflow_logger.py` | MLflow logging helpers for training & inference |
+| `mlflow_config.py` | Centralised MLflow configuration |
 | `pipelines/` | End-to-end training and batch inference |
 | `tests/` | pytest unit + integration tests |
 | `docker/Dockerfile` | Two-stage container image |
@@ -97,20 +109,22 @@ email_timing_response/
 │   ├── __init__.py
 │   ├── drift_detection.py
 │   ├── logging_config.py
-│   └── metrics.py
+│   ├── metrics.py
+│   └── mlflow_logger.py          # MLflow logging utilities
 │
 ├── tests/                        # pytest test suite
 │   ├── __init__.py
 │   ├── test_model.py
 │   ├── test_api.py
-│   └── test_data.py
+│   ├── test_data.py
+│   └── test_mlflow.py            # MLflow integration tests
 │
-├── pipelines/                    # MLOps pipelines
+├── pipelines/                    # MLOps pipelines (MLflow-tracked)
 │   ├── __init__.py
-│   ├── training_pipeline.py
-│   ├── inference_pipeline.py
-│   ├── train_local_dqn.py
-│   └── train_now.py
+│   ├── training_pipeline.py      # Full DQN training + MLflow
+│   ├── inference_pipeline.py     # Batch inference + MLflow
+│   ├── train_local_dqn.py        # Quick local training + MLflow
+│   └── train_now.py              # Enron full training + MLflow
 │
 ├── .github/workflows/ci_cd.yml   # CI/CD
 ├── docker/Dockerfile             # Container image
@@ -154,11 +168,17 @@ email_timing_response/
 │   ├── __init__.py
 │   └── logger.py
 │
+├── scripts/                      # Utility scripts
+│   └── mlflow_server.py          # Launch MLflow tracking UI
+│
+├── mlruns/                       # MLflow local tracking store (git-ignored)
+│
 ├── .gitignore
 ├── .dockerignore
 ├── docker-compose.yml
 ├── pytest.ini
 ├── config.py
+├── mlflow_config.py              # MLflow configuration
 ├── main.py
 ├── requirements.txt
 ├── README.md
@@ -184,8 +204,12 @@ venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Train
+# Train (with MLflow tracking)
 python pipelines/training_pipeline.py --episodes 10000
+
+# View training runs in MLflow UI
+python scripts/mlflow_server.py
+# Open http://127.0.0.1:5050 in your browser
 
 # Serve
 uvicorn app.main:app --reload --port 8000
@@ -217,13 +241,81 @@ Invoke-RestMethod -Method POST `
 ## Training the Agent
 
 ```bash
-# Full pipeline (versioned checkpoints)
+# Full pipeline (versioned checkpoints + MLflow)
 python pipelines/training_pipeline.py --episodes 10000 --source synthetic
 
-# Legacy local script
+# Train without MLflow tracking
+python pipelines/training_pipeline.py --episodes 10000 --no-mlflow
+
+# Legacy local script (MLflow-tracked)
 python pipelines\train_local_dqn.py
 
 # Colab: open train_colab.ipynb, run all cells, download models/dqn_weights.pt
+```
+
+---
+
+## MLflow Experiment Tracking
+
+This project uses [MLflow](https://mlflow.org/) for comprehensive experiment tracking, model versioning, and monitoring.
+
+### What Gets Tracked
+
+| Pipeline | Logged Data |
+|----------|------------|
+| `training_pipeline.py` | Hyperparameters, per-episode rewards, epsilon decay, training duration, model weights, reward curves |
+| `train_local_dqn.py` | Same as above for local quick training runs |
+| `train_now.py` | Both Q-Learning and DQN runs tracked in separate experiments |
+| `inference_pipeline.py` | Prediction counts, confidence stats, latency percentiles, drift reports |
+
+### MLflow Experiments
+
+| Experiment Name | Purpose |
+|----------------|---------|
+| `email-dqn-training` | All DQN training runs |
+| `email-qlearning-training` | Q-Learning training runs |
+| `email-inference-monitoring` | Batch inference metrics & drift |
+
+### Launch the MLflow UI
+
+```bash
+# Start the tracking UI (default: http://127.0.0.1:5050)
+python scripts/mlflow_server.py
+
+# Custom port
+python scripts/mlflow_server.py --port 8090
+```
+
+### Configuration
+
+MLflow settings are centralised in `mlflow_config.py`:
+
+```python
+from mlflow_config import MLflowConfig
+
+# Override tracking URI via environment variable:
+# export MLFLOW_TRACKING_URI=http://your-mlflow-server:5000
+```
+
+### Architecture
+
+```
+mlflow_config.py                  ← Central configuration
+    │
+    ├── monitoring/mlflow_logger.py ← Reusable logging helpers
+    │       │
+    │       ├── log_training_params()
+    │       ├── log_episode_metrics()
+    │       ├── log_evaluation_results()
+    │       ├── log_model_artifact()
+    │       ├── log_reward_curve()
+    │       ├── log_drift_report()
+    │       └── log_inference_metrics()
+    │
+    ├── pipelines/training_pipeline.py  ← Uses helpers above
+    ├── pipelines/train_local_dqn.py    ← Uses helpers above
+    ├── pipelines/train_now.py          ← Uses helpers above
+    └── pipelines/inference_pipeline.py ← Uses helpers above
 ```
 
 ---
@@ -250,6 +342,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 pytest tests/ -v --cov=. --cov-report=term-missing
 ```
 
+Test modules:
+- `test_model.py` — DQN agent, Q-Network, ReplayBuffer
+- `test_api.py` — FastAPI endpoint integration tests
+- `test_data.py` — Email dataclass, reward calculator, environment
+- `test_mlflow.py` — MLflow configuration, logger helpers, tracking
+
 ---
 
 ## Docker Deployment
@@ -270,6 +368,7 @@ docker run -p 8000:8000 -v $(pwd)/models:/app/models email-timing-response
 | `logs/app.log` | JSON structured logs (rotating 5 MB × 5) |
 | `logs/metrics.json` | Prediction counts, confidence, latency percentiles |
 | `logs/drift_report.json` | Per-feature PSI drift scores and alerts |
+| `mlruns/` | MLflow experiment tracking data (params, metrics, artifacts) |
 
 ---
 

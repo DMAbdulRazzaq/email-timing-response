@@ -34,7 +34,9 @@ COPY pipelines/       pipelines/
 COPY simulation/      simulation/
 COPY training/        training/
 COPY utils/           utils/
+COPY scripts/         scripts/
 COPY config.py        .
+COPY mlflow_config.py .
 COPY main.py          .
 
 # Models directory — mount a volume in production to persist trained weights

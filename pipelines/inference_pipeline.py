@@ -1,8 +1,9 @@
 """
-Batch inference pipeline.
+Batch inference pipeline with MLflow experiment tracking.
 
 Loads the trained DQN agent and runs it over a stream of emails,
 writing action recommendations to a JSON Lines output file.
+Logs inference metrics and drift reports to MLflow.
 
 Usage:
     python pipelines/inference_pipeline.py --input emails.jsonl --output predictions.jsonl
@@ -69,7 +70,7 @@ def predict_email(agent, email: Email) -> dict:
     }
 
 
-def run_batch(agent, emails: list, output_path: str, version: str):
+def run_batch(agent, emails: list, output_path: str, version: str, use_mlflow: bool = True):
     metrics = MetricsTracker()
     drift = DriftDetector.default()
     results = []
@@ -118,6 +119,37 @@ def run_batch(agent, emails: list, output_path: str, version: str):
     drift_report = drift.report()
     logger.info("Batch complete. Metrics: %s", snap)
     logger.info("Drift report: %s", drift_report.get("status"))
+
+    # ── Log to MLflow ─────────────────────────────────────────────────────────
+    if use_mlflow:
+        try:
+            import mlflow
+
+            from mlflow_config import MLflowConfig, init_mlflow
+            from monitoring.mlflow_logger import (
+                log_drift_report,
+                log_inference_metrics,
+            )
+
+            init_mlflow(MLflowConfig.EXPERIMENT_INFERENCE)
+            with mlflow.start_run(
+                run_name=f"inference-batch-{time.strftime('%Y%m%d_%H%M%S')}"
+            ):
+                mlflow.set_tag("model_version", version)
+                mlflow.set_tag("batch_size", len(emails))
+                mlflow.log_param("num_emails", len(emails))
+                mlflow.log_param("model_version", version)
+
+                log_inference_metrics(snap)
+                log_drift_report(drift_report)
+
+                # Log output file as artifact
+                if os.path.exists(output_path):
+                    mlflow.log_artifact(output_path, artifact_path="predictions")
+
+        except Exception as e:
+            logger.warning("MLflow logging failed (non-fatal): %s", e)
+
     return results, snap
 
 
@@ -158,7 +190,14 @@ if __name__ == "__main__":
     p.add_argument("--input", default=None, help="Path to input JSONL file")
     p.add_argument("--output", default="logs/predictions.jsonl")
     p.add_argument("--demo", action="store_true", help="Run on 20 synthetic emails")
+    p.add_argument(
+        "--no-mlflow",
+        action="store_true",
+        help="Disable MLflow tracking for this run",
+    )
     args = p.parse_args()
+
+    use_mlflow = not args.no_mlflow
 
     if args.demo or args.input is None:
         demo_run()
@@ -166,5 +205,5 @@ if __name__ == "__main__":
         agent, version = load_agent()
         with open(args.input) as f:
             emails = [json.loads(line) for line in f]
-        run_batch(agent, emails, args.output, version)
+        run_batch(agent, emails, args.output, version, use_mlflow=use_mlflow)
         print(f"Results written to {args.output}")

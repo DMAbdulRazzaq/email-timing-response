@@ -3,6 +3,7 @@ train_now.py
 - Downloads Enron dataset if not present
 - Trains Q-Learning + DQN for 100,000 episodes using GPU if available
 - Saves both models to models/qlearning.pkl and models/dqn.pkl
+- Logs all runs to MLflow for experiment tracking
 """
 
 import io
@@ -17,12 +18,17 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_DIR)
 
 import tarfile
+import time
 import urllib.request
+
+import mlflow
 
 from agent.dqn import DQNAgent
 from agent.q_learning import QLearningAgent
 from config import Config
 from environment.email_env import EmailEnvironment
+from mlflow_config import MLflowConfig, init_mlflow
+from monitoring.mlflow_logger import log_model_artifact, log_training_params
 from simulation.simulator import EmailSimulator
 from training.trainer import Trainer
 
@@ -94,11 +100,42 @@ sim_ql = EmailSimulator(source_ql)
 env_ql = EmailEnvironment(sim_ql, max_steps=Config.MAX_STEPS)
 
 trainer_ql = Trainer(env_ql, ql, episodes=EPISODES, log_every=LOG_EVERY)
-trainer_ql.run()
 
-# Use agent's own save() to avoid pickle lambda issue
-ql.save(QL_PATH)
-print(f"\nQ-Learning model saved -> {QL_PATH}\n")
+# MLflow tracking for Q-Learning
+init_mlflow(MLflowConfig.EXPERIMENT_QL)
+with mlflow.start_run(run_name=f"qlearning-{time.strftime('%Y%m%d_%H%M%S')}"):
+    log_training_params(
+        {
+            "algorithm": "Q-Learning",
+            "episodes": EPISODES,
+            "source": "enron",
+            "alpha": Config.QL_ALPHA,
+            "gamma": Config.QL_GAMMA,
+            "epsilon_start": Config.QL_EPSILON,
+            "epsilon_min": Config.QL_EPSILON_MIN,
+            "epsilon_decay": Config.QL_EPSILON_DECAY,
+            "max_steps_per_episode": Config.MAX_STEPS,
+        }
+    )
+
+    t0 = time.time()
+    reward_history_ql = trainer_ql.run()
+    elapsed_ql = time.time() - t0
+
+    # Use agent's own save() to avoid pickle lambda issue
+    ql.save(QL_PATH)
+    print(f"\nQ-Learning model saved -> {QL_PATH}\n")
+
+    final_avg_ql = sum(reward_history_ql[-500:]) / min(500, len(reward_history_ql))
+    mlflow.log_metrics(
+        {
+            "final_avg_reward_500": final_avg_ql,
+            "training_seconds": round(elapsed_ql, 2),
+            "total_episodes": EPISODES,
+        }
+    )
+    log_model_artifact(QL_PATH)
+    mlflow.set_tag("script", "train_now")
 
 # ── Train DQN ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
@@ -121,14 +158,51 @@ sim_dqn = EmailSimulator(source_dqn)
 env_dqn = EmailEnvironment(sim_dqn, max_steps=Config.MAX_STEPS)
 
 trainer_dqn = Trainer(env_dqn, dqn, episodes=EPISODES, log_every=LOG_EVERY)
-trainer_dqn.run()
 
-# DQN uses full pickle (no lambda) so trainer.save() works fine
-trainer_dqn.save(DQN_PATH)
-print(f"\nDQN model saved -> {DQN_PATH}\n")
+# MLflow tracking for DQN
+init_mlflow(MLflowConfig.EXPERIMENT_DQN)
+with mlflow.start_run(run_name=f"dqn-enron-{time.strftime('%Y%m%d_%H%M%S')}"):
+    log_training_params(
+        {
+            "algorithm": "Double-DQN",
+            "episodes": EPISODES,
+            "source": "enron",
+            "state_size": Config.STATE_SIZE,
+            "action_size": Config.ACTION_SIZE,
+            "alpha": Config.DQN_ALPHA,
+            "gamma": Config.DQN_GAMMA,
+            "epsilon_start": Config.DQN_EPSILON,
+            "epsilon_min": Config.DQN_EPSILON_MIN,
+            "epsilon_decay": Config.DQN_EPSILON_DECAY,
+            "batch_size": Config.DQN_BATCH_SIZE,
+            "target_update": Config.DQN_TARGET_UPDATE,
+            "buffer_capacity": Config.DQN_BUFFER_CAP,
+            "max_steps_per_episode": Config.MAX_STEPS,
+        }
+    )
+
+    t0 = time.time()
+    reward_history_dqn = trainer_dqn.run()
+    elapsed_dqn = time.time() - t0
+
+    # DQN uses full pickle (no lambda) so trainer.save() works fine
+    trainer_dqn.save(DQN_PATH)
+    print(f"\nDQN model saved -> {DQN_PATH}\n")
+
+    final_avg_dqn = sum(reward_history_dqn[-500:]) / min(500, len(reward_history_dqn))
+    mlflow.log_metrics(
+        {
+            "final_avg_reward_500": final_avg_dqn,
+            "training_seconds": round(elapsed_dqn, 2),
+            "total_episodes": EPISODES,
+        }
+    )
+    log_model_artifact(DQN_PATH)
+    mlflow.set_tag("script", "train_now")
 
 print("=" * 60)
 print("  TRAINING COMPLETE!")
 print(f"  Models saved in: {MODELS_DIR}")
+print("  📊 View MLflow runs: python scripts/mlflow_server.py")
 print("  Now launch the web UI with:  python ui/web_ui.py")
 print("=" * 60)
