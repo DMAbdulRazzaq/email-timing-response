@@ -33,6 +33,10 @@ A **Deep Q-Network (DQN)** reinforcement-learning agent that learns the optimal 
 | **Algorithm** | Double DQN with experience replay and target network |
 | **Reward** | Custom function rewarding timely replies to high-priority mail |
 
+> Next-stage architecture for thread-aware Gmail automation, Gemini intelligence,
+> human approval, feedback rewards, and analytics is documented in
+> [NEXT_STAGE_ARCHITECTURE.md](NEXT_STAGE_ARCHITECTURE.md).
+
 ---
 
 ## System Architecture

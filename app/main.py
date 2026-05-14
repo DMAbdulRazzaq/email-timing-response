@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Ensure project root is on the path when running from inside app/
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from app.api.response_routes import router as response_router
 from app.schemas import (
     EmailRequest,
     HealthResponse,
@@ -49,6 +50,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Include response generation routes ────────────────────────────────────────
+app.include_router(response_router)
 
 # ── State shared across requests ─────────────────────────────────────────────
 
