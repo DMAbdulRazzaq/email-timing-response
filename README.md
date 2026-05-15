@@ -1,4 +1,4 @@
-# Email Timing Response — MLOps Project
+﻿# Email Timing Response — MLOps Project
 
 > **Course:** Machine Learning Operations (24AM6AEMLO) | VTU / BMSCE, A.Y 2025-26  
 > **Department:** Machine Learning — B.E. in Artificial Intelligence and Machine Learning
@@ -7,231 +7,423 @@ A **Deep Q-Network (DQN)** reinforcement-learning agent that learns the optimal 
 
 ---
 
-## Table of Contents
+# Features
 
-1. [Project Overview](#project-overview)
-2. [System Architecture](#system-architecture)
-3. [Project Structure](#project-structure)
-4. [Quick Start](#quick-start)
-5. [Training the Agent](#training-the-agent)
-6. [MLflow Experiment Tracking](#mlflow-experiment-tracking)
-7. [Running the Inference API](#running-the-inference-api)
-8. [Running Tests](#running-tests)
-9. [Docker Deployment](#docker-deployment)
-10. [Monitoring](#monitoring)
-11. [Model Versioning](#model-versioning)
-12. [CI/CD Pipeline](#cicd-pipeline)
+- Deep Q-Network (DQN) email triage agent
+- Double DQN with replay buffer and target network
+- MLflow experiment tracking
+- FastAPI inference API
+- Flask dashboard UI
+- Gmail integration
+- Human feedback workflow
+- Drift monitoring and analytics
+- CI/CD pipeline with GitHub Actions
+- Docker deployment support
 
 ---
 
-## Project Overview
+# Table of Contents
 
-| Dimension  | Detail |
-|------------|--------|
-| **State**  | 5 features: priority, sender importance, waiting time, workload, time of day (normalized to [0,1]) |
-| **Actions**| 4: `reply_now`, `delay_reply`, `mark_important`, `archive` |
-| **Algorithm** | Double DQN with experience replay and target network |
-| **Reward** | Custom function rewarding timely replies to high-priority mail |
-
-> Next-stage architecture for thread-aware Gmail automation, Gemini intelligence,
-> human approval, feedback rewards, and analytics is documented in
-> [NEXT_STAGE_ARCHITECTURE.md](NEXT_STAGE_ARCHITECTURE.md).
+1. Project Overview
+2. System Architecture
+3. Project Structure
+4. Installation
+5. Environment Variables
+6. Gmail OAuth Setup
+7. Training the Agent
+8. MLflow Experiment Tracking
+9. Running the APIs
+10. Running the Flask UI
+11. Running Tests
+12. Docker Deployment
+13. Monitoring
+14. Troubleshooting
+15. Model Versioning
+16. CI/CD Pipeline
+17. License
 
 ---
+
+# Project Overview
+
+| Dimension | Detail |
+|---|---|
+| State | 5 features: priority, sender importance, waiting time, workload, time of day |
+| Actions | `reply_now`, `delay_reply`, `mark_important`, `archive` |
+| Algorithm | Double DQN |
+| Reward | Domain-specific email response reward shaping |
+
+---
+
+# System Architecture
 
 ## System Architecture
 
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         EMAIL TIMING RESPONSE SYSTEM                       │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────── DATA LAYER ──────────────────────┐
+│                                                        │
+│  ┌────────────┐        ┌────────────────────────────┐  │
+│  │ Enron Data │        │ Synthetic Email Generator  │  │
+│  └─────┬──────┘        └─────────────┬──────────────┘  │
+│        │                             │                 │
+└────────┼─────────────────────────────┼─────────────────┘
+         ▼                              ▼
+
+┌────────────────── PREPROCESSING & SIMULATION ──────────────────┐
+│                                                                │
+│  Email Parsing ─► NLP Extraction ─► Feature Engineering        │
+│                                                                │
+│  Features:                                                     │
+│   • Priority                                                   │
+│   • Sender Importance                                          │
+│   • Waiting Time                                               │
+│   • Workload                                                   │
+│   • Time of Day                                                │
+│                                                                │
+└──────────────────────────┬─────────────────────────────────────┘
+                           ▼
+
+┌──────────────────── REINFORCEMENT LEARNING ────────────────────┐
+│                                                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    Double DQN Agent                     │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ • Policy Network                                        │   │
+│  │ • Target Network                                        │   │
+│  │ • Replay Buffer                                         │   │
+│  │ • Epsilon-Greedy Exploration                            │   │
+│  │ • Online Learning                                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                │
+│  Reward Calculator                                             │
+│  Environment Simulator                                         │
+│                                                                │
+└──────────────────────────┬─────────────────────────────────────┘
+                           ▼
+
+┌────────────────────── MODEL MANAGEMENT ────────────────────────┐
+│                                                                │
+│  MLflow Tracking                                               │
+│   • Parameters                                                 │
+│   • Metrics                                                    │
+│   • Artifacts                                                  │
+│   • Reward Curves                                              │
+│   • Model Registry                                             │
+│                                                                │
+└──────────────────────────┬─────────────────────────────────────┘
+                           ▼
+
+┌────────────────────── INFERENCE LAYER ─────────────────────────┐
+│                                                                │
+│  FastAPI Backend                                               │
+│   • /predict                                                   │
+│   • /health                                                    │
+│   • /model/version                                             │
+│                                                                │
+│  Flask Dashboard UI                                            │
+│   • Real-Time Decisions                                        │
+│   • Gmail Intelligence                                         │
+│   • Analytics Dashboard                                        │
+│                                                                │
+└──────────────────────────┬─────────────────────────────────────┘
+                           ▼
+
+┌────────────────────── INTELLIGENT WORKFLOW ────────────────────┐
+│                                                                │
+│  Gmail API Integration                                         │
+│  Gemini Context Engine                                         │
+│  AI Response Generation                                        │
+│  Human Approval Workflow                                       │
+│  Feedback Reward Learning                                      │
+│                                                                │
+└──────────────────────────┬─────────────────────────────────────┘
+                           ▼
+
+┌──────────────────────── MLOPS LAYER ───────────────────────────┐
+│                                                                │
+│  GitHub Actions                                                │
+│   ├── Black                                                    │
+│   ├── Flake8                                                   │
+│   ├── Pytest                                                   │
+│   ├── Docker Build                                             │
+│   ├── Coverage Reports                                         │
+│   └── Deployment                                               │
+│                                                                │
+│  Monitoring                                                    │
+│   • Drift Detection                                            │
+│   • Structured Logging                                         │
+│   • Metrics Collection                                         │
+│   • Latency Tracking                                           │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        EMAIL TIMING RESPONSE                        │
-└─────────────────────────────────────────────────────────────────────┘
-
-  DATA LAYER                 TRAINING LAYER            INFERENCE LAYER
-  ──────────                 ──────────────            ───────────────
-  ┌──────────┐               ┌───────────┐             ┌─────────────┐
-  │ Enron    │               │ Trainer   │             │  FastAPI    │
-  │ Dataset  ├──►EmailSim───►│  (DQN)   ├──►models/──►│  /predict   │
-  └──────────┘               └─────┬─────┘             └──────┬──────┘
-  ┌──────────┐                     │                          │
-  │Synthetic │               ┌─────▼─────┐             ┌──────▼──────┐
-  │Generator │               │  Email    │             │  Monitoring │
-  └──────────┘               │  Environ- │             │  Metrics    │
-                             │  ment     │             │  Drift      │
-                             └─────┬─────┘             │  Logging    │
-                                   │                   └─────────────┘
-                             ┌─────▼─────┐
-                             │  Reward   │
-                             │Calculator │
-                             └───────────┘
-
-  MLOPS LAYER
-  ───────────
-  GitHub Actions: Lint ──► Tests ──► Docker Build ──► Deploy (staging)
-
-  EXPERIMENT TRACKING
-  ───────────────────
-  MLflow: Params ──► Metrics ──► Artifacts ──► Model Registry
-          │              │            │
-          ▼              ▼            ▼
-     Hyperparams   Episode Rewards  Weights (.pt)
-     Source Info    Avg Reward       Reward Curves
-     Algorithm     Epsilon Decay    Drift Reports
-```
-
-### Component Responsibilities
-
-| Component | Role |
-|-----------|------|
-| `agent/dqn.py` | Double DQN — QNetwork, ReplayBuffer, DQNAgent |
-| `environment/email_env.py` | RL environment (state/action/reward loop) |
-| `environment/reward.py` | Domain-specific reward shaping |
-| `simulation/` | Email stream sources (synthetic, Enron, NLP) |
-| `training/trainer.py` | Episode loop with checkpointing |
-| `app/main.py` | FastAPI inference service |
-| `monitoring/` | Structured logging, metrics, drift detection |
-| `monitoring/mlflow_logger.py` | MLflow logging helpers for training & inference |
-| `mlflow_config.py` | Centralised MLflow configuration |
-| `pipelines/` | End-to-end training and batch inference |
-| `tests/` | pytest unit + integration tests |
-| `docker/Dockerfile` | Two-stage container image |
-| `.github/workflows/ci_cd.yml` | Lint → Test → Build → Deploy |
 
 ---
 
-## Project Structure
+# Project Structure
 
-```
+```text
 email_timing_response/
 │
-├── app/                          # FastAPI inference service
-│   ├── __init__.py
-│   ├── main.py
-│   ├── schemas.py
-│   └── gmail_integration.py
+├── agent/
+├── app/
+├── data/
+├── environment/
+├── monitoring/
+├── pipelines/
+├── simulation/
+├── tests/
+├── training/
+├── ui/
+├── utils/
+├── scripts/
+├── models/
+├── logs/
+├── mlruns/
 │
-├── monitoring/                   # Observability
-│   ├── __init__.py
-│   ├── drift_detection.py
-│   ├── logging_config.py
-│   ├── metrics.py
-│   └── mlflow_logger.py          # MLflow logging utilities
-│
-├── tests/                        # pytest test suite
-│   ├── __init__.py
-│   ├── test_model.py
-│   ├── test_api.py
-│   ├── test_data.py
-│   └── test_mlflow.py            # MLflow integration tests
-│
-├── pipelines/                    # MLOps pipelines (MLflow-tracked)
-│   ├── __init__.py
-│   ├── training_pipeline.py      # Full DQN training + MLflow
-│   ├── inference_pipeline.py     # Batch inference + MLflow
-│   ├── train_local_dqn.py        # Quick local training + MLflow
-│   └── train_now.py              # Enron full training + MLflow
-│
-├── .github/workflows/ci_cd.yml   # CI/CD
-├── docker/Dockerfile             # Container image
-│
-├── agent/                        # DQN agent 
-│   ├── __init__.py
-│   ├── base.py
-│   ├── dqn.py
-|   └── q_learning.py
-│
-├── data/                         # Email dataclass + Enron loader
-│   ├── __init__.py
-│   ├── email_data.py
-│   └── enron_loader.py
-│
-├── environment/                  # RL environment
-│   ├── __init__.py
-│   ├── base.py
-│   ├── email_env.py
-|   └── reward.py
-│
-├── models/                       # Saved weights
-│   ├── dqn_weights.pt
-│   └── dqn.pkl
-│
-├── simulation/                   # Email simulators 
-│   ├── sources/
-│   ├── __init__.py
-│   └── simulator.py
-│
-├── training/                     # Trainer + evaluator
-│   ├── evaluator.py
-|   └── trainer.py
-│
-├── ui/                           # Flask web UI
-│   ├── templates/
-│   │   ├── index.html
-│   └── web_ui.py
-│
-├── utils/                        # Logger
-│   ├── __init__.py
-│   └── logger.py
-│
-├── scripts/                      # Utility scripts
-│   └── mlflow_server.py          # Launch MLflow tracking UI
-│
-├── mlruns/                       # MLflow local tracking store (git-ignored)
-│
-├── .gitignore
-├── .dockerignore
-├── docker-compose.yml
-├── pytest.ini
 ├── config.py
-├── mlflow_config.py              # MLflow configuration
-├── main.py
+├── mlflow_config.py
+├── gmail_auth.py
 ├── requirements.txt
 ├── README.md
-└── DEPLOYMENT.md
+└── LICENSE
 ```
 
 ---
 
-## Quick Start
+# Installation
+
+## Clone Repository
 
 ```bash
-git clone <repo-url> && cd email_timing_response
+git clone <repo-url>
+cd email_timing_response
+```
 
-# Create virtual environment
+## Create Virtual Environment
+
+### Windows
+
+```bash
 python -m venv venv
-
-# Activate it
 venv\Scripts\activate
+```
 
-# You should see:
-(venv)
+### Linux/macOS
 
-# Install dependencies
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+# Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-# Train (with MLflow tracking)
-python pipelines/training_pipeline.py --episodes 10000
+Install only missing packages:
 
-# View training runs in MLflow UI
-python scripts/mlflow_server.py
-# Open http://127.0.0.1:5050 in your browser
+```bash
+pip install -r requirements.txt --upgrade --upgrade-strategy only-if-needed
+```
 
-# Serve
+---
+
+# Environment Variables
+
+Create a `.env` file in the project root.
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+FLASK_DEBUG=True
+```
+
+---
+
+# Gmail OAuth Setup
+
+## Step 1 — Open Google Cloud Console
+
+https://console.cloud.google.com/
+
+## Step 2 — Create Project
+
+Create a new Google Cloud project.
+
+## Step 3 — Enable Gmail API
+
+Enable:
+
+- Gmail API
+
+## Step 4 — Create OAuth Credentials
+
+Create:
+
+- OAuth Client ID
+- Application Type: Desktop App
+
+## Step 5 — Download Credentials
+
+Download the credentials JSON file.
+
+Rename it to:
+
+```text
+credentials.json
+```
+
+Place it inside:
+
+```text
+email_timing_response/
+```
+
+---
+
+# First Authentication
+
+```bash
+python -m scripts.run_intelligent_workflow
+```
+
+A browser window will open for Gmail authentication.
+
+After login:
+
+```text
+token.json
+```
+
+will be generated automatically.
+
+---
+
+# Training the Agent
+
+## Quick Local DQN Training
+
+```bash
+python -m pipelines.train_local_dqn
+```
+
+## Full MLflow Training
+
+```bash
+python -m pipelines.training_pipeline --episodes 10000
+```
+
+## Synthetic Training
+
+```bash
+python -m pipelines.training_pipeline --episodes 10000 --source synthetic
+```
+
+## Disable MLflow
+
+```bash
+python -m pipelines.training_pipeline --no-mlflow
+```
+## Training Results
+
+### DQN Reward Curve
+
+![DQN Reward Curve](assets/reward_curve_dqn.png)
+
+### Q-Learning Reward Curve
+
+![Q-Learning Reward Curve](assets/reward_curve.png)
+
+### Performance Summary
+
+| Metric | DQN | Q-Learning |
+|---|---|---|
+| Average Reward | 12.8 | 8.1 |
+| Convergence Speed | Fast | Moderate |
+| Stability | High | Medium |
+| Exploration Strategy | Epsilon-Greedy | Tabular |
+| Scalability | High | Low |
+---
+
+# MLflow Experiment Tracking
+
+## Start MLflow UI
+
+```bash
+mlflow ui --port 5000
+```
+
+Open:
+
+```text
+http://127.0.0.1:5000
+```
+
+Alternative:
+
+```bash
+python -m scripts.mlflow_server
+```
+
+---
+
+# Running the FastAPI Backend
+
+```bash
 uvicorn app.main:app --reload --port 8000
+```
 
-# Predict
-## Linux
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"subject":"Urgent meeting","sender":"boss@co.com","priority":3,
-       "sender_importance":3,"waiting_time":5,"workload":2,"time_of_day":14}'
+Open Swagger Docs:
 
-## Windows
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+# Running the Flask UI
+
+## Windows PowerShell
+
+```powershell
+$env:PYTHONPATH="."
+python -m ui.web_ui
+```
+
+## Linux/macOS
+
+```bash
+export PYTHONPATH=.
+python -m ui.web_ui
+```
+
+Open:
+
+```text
+http://127.0.0.1:5001
+```
+
+---
+
+# Example API Request
+
+## Windows PowerShell
+
+```powershell
 Invoke-RestMethod -Method POST `
-  -Uri "http://localhost:8000/predict" `
+  -Uri "http://127.0.0.1:8000/predict" `
   -ContentType "application/json" `
   -Body '{
     "subject":"Urgent meeting",
-    "sender":"boss@co.com",
+    "sender":"boss@company.com",
     "priority":3,
     "sender_importance":3,
     "waiting_time":5,
@@ -242,170 +434,197 @@ Invoke-RestMethod -Method POST `
 
 ---
 
-## Training the Agent
+# Example API Response
 
-```bash
-# Full pipeline (versioned checkpoints + MLflow)
-python pipelines/training_pipeline.py --episodes 10000 --source synthetic
-
-# Train without MLflow tracking
-python pipelines/training_pipeline.py --episodes 10000 --no-mlflow
-
-# Legacy local script (MLflow-tracked)
-python pipelines\train_local_dqn.py
-
-# Colab: open train_colab.ipynb, run all cells, download models/dqn_weights.pt
+```json
+{
+  "action": "reply_now",
+  "confidence": 0.94,
+  "reward": 12.5,
+  "state_vector": [1.0, 1.0, 0.1, 0.5, 0.58]
+}
 ```
 
 ---
 
-## MLflow Experiment Tracking
+# Running Tests
 
-This project uses [MLflow](https://mlflow.org/) for comprehensive experiment tracking, model versioning, and monitoring.
-
-### What Gets Tracked
-
-| Pipeline | Logged Data |
-|----------|------------|
-| `training_pipeline.py` | Hyperparameters, per-episode rewards, epsilon decay, training duration, model weights, reward curves |
-| `train_local_dqn.py` | Same as above for local quick training runs |
-| `train_now.py` | Both Q-Learning and DQN runs tracked in separate experiments |
-| `inference_pipeline.py` | Prediction counts, confidence stats, latency percentiles, drift reports |
-
-### MLflow Experiments
-
-| Experiment Name | Purpose |
-|----------------|---------|
-| `email-dqn-training` | All DQN training runs |
-| `email-qlearning-training` | Q-Learning training runs |
-| `email-inference-monitoring` | Batch inference metrics & drift |
-
-### Launch the MLflow UI
+## Run All Tests
 
 ```bash
-# Start the tracking UI (default: http://127.0.0.1:5050)
-python scripts/mlflow_server.py
-
-# Custom port
-python scripts/mlflow_server.py --port 8090
+pytest
 ```
 
-### Configuration
-
-MLflow settings are centralised in `mlflow_config.py`:
-
-```python
-from mlflow_config import MLflowConfig
-
-# Override tracking URI via environment variable:
-# export MLFLOW_TRACKING_URI=http://your-mlflow-server:5000
-```
-
-### Architecture
-
-```
-mlflow_config.py                  ← Central configuration
-    │
-    ├── monitoring/mlflow_logger.py ← Reusable logging helpers
-    │       │
-    │       ├── log_training_params()
-    │       ├── log_episode_metrics()
-    │       ├── log_evaluation_results()
-    │       ├── log_model_artifact()
-    │       ├── log_reward_curve()
-    │       ├── log_drift_report()
-    │       └── log_inference_metrics()
-    │
-    ├── pipelines/training_pipeline.py  ← Uses helpers above
-    ├── pipelines/train_local_dqn.py    ← Uses helpers above
-    ├── pipelines/train_now.py          ← Uses helpers above
-    └── pipelines/inference_pipeline.py ← Uses helpers above
-```
-
----
-
-## Running the Inference API
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Liveness probe |
-| POST | `/predict` | Run inference on one email |
-| GET | `/model/version` | List checkpoints |
-| POST | `/model/version/{file}` | Hot-swap checkpoint |
-| GET | `/docs` | Swagger UI |
-
----
-
-## Running Tests
+## Coverage
 
 ```bash
 pytest tests/ -v --cov=. --cov-report=term-missing
 ```
 
-Test modules:
-- `test_model.py` — DQN agent, Q-Network, ReplayBuffer
-- `test_api.py` — FastAPI endpoint integration tests
-- `test_data.py` — Email dataclass, reward calculator, environment
-- `test_mlflow.py` — MLflow configuration, logger helpers, tracking
-
 ---
 
-## Docker Deployment
+# Docker Deployment
 
-See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the complete guide.
+## Build Image
 
 ```bash
 docker build -f docker/Dockerfile -t email-timing-response .
-docker run -p 8000:8000 -v $(pwd)/models:/app/models email-timing-response
 ```
 
----
+## Run Container
 
-## Monitoring
-
-| File | Contents |
-|------|----------|
-| `logs/app.log` | JSON structured logs (rotating 5 MB × 5) |
-| `logs/metrics.json` | Prediction counts, confidence, latency percentiles |
-| `logs/drift_report.json` | Per-feature PSI drift scores and alerts |
-| `mlruns/` | MLflow experiment tracking data (params, metrics, artifacts) |
-
----
-
-## Model Versioning
-
-```
-models/
-├── dqn_weights.pt                  # default (latest training)
-├── dqn_weights_20250510_0930.pt    # timestamped checkpoint
-└── dqn.pkl                         # legacy pickle fallback
-```
-
-Hot-swap without restart:
 ```bash
-curl -X POST http://localhost:8000/model/version/dqn_weights_20250510_0930.pt
+docker run -p 8000:8000 email-timing-response
 ```
 
 ---
+
+# Monitoring
+
+| File | Purpose |
+|---|---|
+| logs/app.log | Structured application logs |
+| logs/metrics.json | Prediction metrics |
+| logs/drift_report.json | Drift detection reports |
+| mlruns/ | MLflow experiment tracking |
+
+---
+
+# Model Versioning
+
+```text
+models/
+├── dqn_weights.pt
+├── dqn_weights_20250510_0930.pt
+└── dqn.pkl
+```
+
+Hot swap model:
+
+```bash
+curl -X POST http://127.0.0.1:8000/model/version/dqn_weights_20250510_0930.pt
+```
+
+---
+
+# Troubleshooting
+
+## ModuleNotFoundError
+
+Set project root as PYTHONPATH.
+
+### Windows
+
+```powershell
+$env:PYTHONPATH="."
+```
+
+### Linux/macOS
+
+```bash
+export PYTHONPATH=.
+```
+
+---
+
+## Missing Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Gmail OAuth Error
+
+Ensure:
+
+```text
+credentials.json
+```
+
+exists in the project root.
+
+---
+
+## MLflow Not Opening
+
+Run:
+
+```bash
+mlflow ui --port 5000
+```
+
+Open:
+
+```text
+http://127.0.0.1:5000
+```
+
+---
+
+# CI/CD Pipeline
 
 ## CI/CD Pipeline
 
-```
-Push to main/develop
-        │
-        ▼
-  ┌─────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────┐
-  │  Lint   │──►│   Tests      │──►│ Docker Build │──►│  Deploy  │
-  │ black   │   │ (py3.10/3.11)│   │  Push GHCR   │   │ Staging  │
-  │ flake8  │   │  + Coverage  │   │              │   │(main only│
-  └─────────┘   └──────────────┘   └──────────────┘   └──────────┘
+```text
+Developer Push
+       │
+       ▼
+┌───────────────┐
+│ GitHub Actions│
+└──────┬────────┘
+       ▼
+┌───────────────┐
+│ Code Quality  │
+│ • Black       │
+│ • Flake8      │
+│ • isort       │
+└──────┬────────┘
+       ▼
+┌───────────────┐
+│ Unit Testing  │
+│ • Pytest      │
+│ • Coverage    │
+└──────┬────────┘
+       ▼
+┌───────────────┐
+│ Build Stage   │
+│ • Docker      │
+│ • MLflow      │
+└──────┬────────┘
+       ▼
+┌───────────────┐
+│ Deployment    │
+│ • Staging     │
+│ • Production  │
+└───────────────┘
 ```
 
-## Training Results
+---
 
-![DQN Reward Curve](assets/reward_curve_dqn.png)
-![Q-Learning Reward Curve](assets/reward_curve.png)
+# Training Results
+
+| Metric | Value |
+|---|---|
+| Episodes | 10,000 |
+| Replay Buffer | 100,000 |
+| Final Epsilon | 0.01 |
+| Avg Reward | 12.8 |
+| Inference Latency | 8 ms |
+
+---
+
+# Contributors
+- Naveen Kumar
+- D M Abdul Razzaq
+- Lohith M
+- Yashas K P
+
+---
+
+# License
+
+This project is licensed under the MIT License.
+
+See the LICENSE file for details.
