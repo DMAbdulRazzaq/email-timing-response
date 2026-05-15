@@ -19,7 +19,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.response_routes import router as response_router
-from app.schemas import EmailRequest, HealthResponse, ModelVersionResponse, PredictionResponse
+from app.schemas import (
+    EmailRequest,
+    HealthResponse,
+    ModelVersionResponse,
+    PredictionResponse,
+)
 from config import Config
 from data.email_data import Email
 from monitoring.logging_config import get_logger
