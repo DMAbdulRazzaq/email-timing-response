@@ -1,0 +1,9 @@
+env_module: simulation.simulator
+env_class: EmailSimulationEnv
+env_args:
+  seed: 1234
+  arrival_rate: 0.5
+episodes: 20
+max_steps: 500
+seed: 1234
+# dqn_checkpoint: models/dqn_weights.pt

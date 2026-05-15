@@ -18,9 +18,7 @@ import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure project root is on the path when running from inside app/
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
+from app.api.response_routes import router as response_router
 from app.schemas import (
     EmailRequest,
     HealthResponse,
@@ -31,6 +29,10 @@ from config import Config
 from data.email_data import Email
 from monitoring.logging_config import get_logger
 from monitoring.metrics import MetricsTracker
+
+# Ensure project root is on the path when running from inside app/
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 
 logger = get_logger(__name__)
 metrics = MetricsTracker()
@@ -49,6 +51,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Include response generation routes ────────────────────────────────────────
+app.include_router(response_router)
 
 # ── State shared across requests ─────────────────────────────────────────────
 

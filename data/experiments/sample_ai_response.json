@@ -1,0 +1,9 @@
+{
+  "message_id": "sample123",
+  "generated_text": "Hi recruiter@company.com,\n\nThank you for your email regarding Job Opportunity: Senior ML Eng. I appreciate you reaching out.\n\nBest regards",
+  "tone_used": "professional",
+  "confidence": 0.4,
+  "warnings": [
+    "API unavailable - using template fallback"
+  ]
+}

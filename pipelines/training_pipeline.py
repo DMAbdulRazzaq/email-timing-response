@@ -17,8 +17,6 @@ import time
 import mlflow
 import torch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from agent.dqn import DQNAgent
 from config import Config
 from environment.email_env import EmailEnvironment
@@ -34,6 +32,9 @@ from simulation.simulator import EmailSimulator
 from simulation.sources.enron import EnronSource
 from simulation.sources.synthetic import SyntheticEmailSource
 from training.trainer import Trainer
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 
 logger = get_logger(__name__)
 

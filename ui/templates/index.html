@@ -166,6 +166,23 @@
       margin-bottom: -8px;
     }
 
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 24px;
+      background: rgba(2,6,23,0.95);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      font-family: var(--mono);
+      z-index: 9999;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.success { border-left: 4px solid var(--green); }
+
     /* ── SESSION METRICS ──────────────────────────────────────── */
     .metric-grid {
       display: grid;
@@ -593,10 +610,42 @@
     .prio-pill.p1 { background: rgba(100,116,139,0.1); color: var(--muted); border: 1px solid rgba(100,116,139,0.2); }
 
     /* ── RESPONSIVE ────────────────────────────────────────────── */
+    /* Live Gmail intelligence */
+    .gmail-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .gmail-toolbar input {
+      flex: 1; min-width: 260px; background: rgba(15,23,42,0.6);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 11px 14px; color: var(--text); font-family: var(--mono);
+      font-size: 12px; outline: none;
+    }
+    .gmail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .gmail-list { display: grid; gap: 12px; max-height: 620px; overflow-y: auto; }
+    .email-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; background: rgba(15,23,42,0.42); }
+    .email-card-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .email-subject { font-weight: 700; color: var(--text); line-height: 1.3; }
+    .email-meta { color: var(--muted); font-size: 11px; font-family: var(--mono); margin-top: 3px; }
+    .badge-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-family: var(--mono); font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .badge-URGENT { color: var(--red); background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); }
+    .badge-IMPORTANT { color: var(--amber); background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); }
+    .badge-NORMAL { color: var(--blue); background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); }
+    .badge-PROMOTION, .badge-SPAM { color: var(--muted); background: rgba(100,116,139,0.12); border: 1px solid rgba(100,116,139,0.25); }
+    .email-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+    .mini-stat { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+    .mini-stat strong { display: block; font-family: var(--mono); color: var(--text); font-size: 15px; }
+    .mini-stat span { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .8px; }
+    .email-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+    .mini-btn { border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); border-radius: 8px; padding: 8px 6px; font-family: var(--mono); font-size: 10px; cursor: pointer; transition: border-color var(--transition), color var(--transition); }
+    .mini-btn:hover { border-color: rgba(34,197,94,0.45); color: var(--green); }
+    .email-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .detail-box { border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: rgba(2,6,23,0.35); font-size: 12px; color: var(--muted); }
+    .detail-box b { color: var(--cyan); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .8px; display: block; margin-bottom: 6px; }
+
     @media (max-width: 1024px) {
       body { grid-template-columns: 1fr; }
       .sidebar { display: none; }
       .main { padding: 16px; }
+      .gmail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .email-detail-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
       .auto-grid, .slider-grid, .result-outer { grid-template-columns: 1fr; }
@@ -826,6 +875,23 @@
   </div>
 
   <!-- ── RESULT ── -->
+  <section class="glass" style="padding:20px">
+    <div class="section-label" style="margin-bottom:16px">Live Gmail Intelligence</div>
+    <div class="gmail-toolbar">
+      <input id="gmail-query" type="text" value="in:inbox newer_than:14d" aria-label="Gmail query">
+      <button class="btn-decide" onclick="loadGmailInbox()" style="width:auto; padding:11px 16px">FETCH LIVE INBOX</button>
+    </div>
+    <div class="gmail-grid">
+      <div class="metric-card"><div class="metric-val" id="gm-total">0</div><div class="metric-lbl">Emails</div></div>
+      <div class="metric-card"><div class="metric-val" id="gm-avg">0</div><div class="metric-lbl">Avg Priority</div></div>
+      <div class="metric-card"><div class="metric-val pos" id="gm-reward">0</div><div class="metric-lbl">Avg Reward</div></div>
+      <div class="metric-card"><div class="metric-val" id="gm-feedback">0</div><div class="metric-lbl">Feedback Events</div></div>
+    </div>
+    <div class="gmail-list" id="gmail-list">
+      <div class="mem-empty">Click FETCH LIVE INBOX to run Gmail -> preprocessing -> DQN -> Gemini/context -> recommendations.</div>
+    </div>
+  </section>
+
   <div id="result-panel" class="glass" role="region" aria-live="polite" aria-label="Agent decision">
     <!-- Decision card + Q-values on same row -->
     <div style="display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border)">
@@ -1110,7 +1176,7 @@
     // Q-value bars (fetch from /debug for q-values or use placeholder)
     // We do a quick fetch to get them from logs (they're in the server log)
     // For now update proportionally from state vector as proxy:
-    renderQBars(action);
+    renderQBars(action, data.q_values || []);
 
     // State vector chips
     if (sv.length >= 5) {
@@ -1182,6 +1248,24 @@
   }
 
   /* ── Sidebar stats ────────────────────────────────────────────────────── */
+  function renderQBarsFromModel(bestAction, qValues) {
+    const names = ['reply_now','delay_reply','mark_important','archive'];
+    const minQ = Math.min(...qValues, 0);
+    const maxQ = Math.max(...qValues, 1);
+    const span = Math.max(maxQ - minQ, 0.001);
+    names.forEach((n, i) => {
+      const fill = document.getElementById('qv-' + i);
+      const num  = document.getElementById('qn-' + i);
+      const isBest = n === bestAction;
+      const raw = qValues[i] ?? 0;
+      const pct = Math.max(8, Math.min(100, ((raw - minQ) / span) * 100));
+      fill.className = 'qval-fill ' + (isBest ? 'best' : 'other');
+      fill.style.width = pct + '%';
+      num.textContent = Number(raw).toFixed(2);
+    });
+  }
+  renderQBars = renderQBarsFromModel;
+
   function updateSidebar(memorySnap) {
     document.getElementById('s-total').textContent  = totalCount;
     const avg = totalReward / totalCount;
@@ -1250,6 +1334,270 @@
     // keep max 100 rows
     const rows = list.querySelectorAll('.hist-row');
     if (rows.length > 100) rows[rows.length-1].remove();
+  }
+
+  async function loadGmailInbox() {
+    const list = document.getElementById('gmail-list');
+    const query = encodeURIComponent(document.getElementById('gmail-query').value || 'in:inbox newer_than:14d');
+    list.innerHTML = '<div class="mem-empty">Running live Gmail intelligence pipeline...</div>';
+    try {
+        const res = await fetch('/gmail_inbox?max_results=10&q=' + query);
+        const contentType = res.headers.get('content-type') || '';
+        let data;
+        if (!res.ok) {
+          const text = await res.text();
+          // Detect HTML error pages
+          if (text && text.trim().startsWith('<')) {
+            throw new Error('Server error: returned HTML. Check backend logs.');
+          }
+          try {
+            data = JSON.parse(text || '{}');
+          } catch (e) {
+            throw new Error('Invalid JSON response from server');
+          }
+          throw new Error(data.error || data.details || 'Server returned error');
+        }
+
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          // Try to parse as text and detect HTML
+          const text = await res.text();
+          if (text && text.trim().startsWith('<')) {
+            throw new Error('Server returned HTML error page');
+          }
+          try { data = JSON.parse(text || '{}'); } catch(e) { throw new Error('Invalid JSON response'); }
+        }
+
+        renderGmailAnalytics(data.analytics || {});
+        renderGmailCards(data.records || []);
+    } catch (err) {
+      list.innerHTML = '<div class="mem-empty">Failed to load Gmail inbox: ' + escapeHtml(err.message || err) + '</div>';
+    }
+  }
+
+  function renderGmailAnalytics(a) {
+    document.getElementById('gm-total').textContent = a.total_emails ?? 0;
+    document.getElementById('gm-avg').textContent = a.avg_priority ?? 0;
+    document.getElementById('gm-reward').textContent = a.avg_reward ?? 0;
+    document.getElementById('gm-feedback').textContent = a.feedback_events ?? 0;
+  }
+
+  function renderGmailCards(records) {
+    const list = document.getElementById('gmail-list');
+    if (!records.length) {
+      list.innerHTML = '<div class="mem-empty">No inbox messages matched the current Gmail query.</div>';
+      return;
+    }
+    list.innerHTML = records.map((r, idx) => emailCardHtml(r, idx)).join('');
+  }
+
+  function emailCardHtml(r, idx) {
+    const gemini = r.gemini || {};
+    const thread = r.thread || {};
+    const reasons = (r.reasons || []).concat((r.recommendation?.reasons || []).slice(0, 3));
+    return `
+      <article class="email-card" id="email-${r.id}" data-thread-id="${r.thread_id}">
+        <div class="email-card-head">
+          <div>
+            <div class="email-subject">${escapeHtml(r.subject || '(No subject)')}</div>
+            <div class="email-meta">${escapeHtml(r.sender || 'unknown')} | ${escapeHtml(r.timestamp || 'no timestamp')}</div>
+          </div>
+          <span class="badge-chip badge-${escapeHtml(r.category)}">${escapeHtml(r.category)}</span>
+        </div>
+        <div class="email-stats">
+          <div class="mini-stat"><strong>${r.priority}</strong><span>Priority</span></div>
+          <div class="mini-stat"><strong>${Math.round((r.confidence || 0) * 100)}%</strong><span>Confidence</span></div>
+          <div class="mini-stat"><strong>${escapeHtml(r.action)}</strong><span>DQN Action</span></div>
+        </div>
+        <div class="email-detail-grid">
+          <div class="detail-box"><b>Explainability</b>${reasons.map(x => '- ' + escapeHtml(x)).join('<br>')}</div>
+          <div class="detail-box"><b>Gemini Context</b>${escapeHtml(gemini.summary || 'Fallback/no Gemini summary')}<br><br><b>Tone</b>${escapeHtml(gemini.tone || 'neutral')}<br><br><b>Urgency</b>${escapeHtml(gemini.urgency_reasoning || '')}</div>
+          <div class="detail-box"><b>Thread Awareness</b>Messages: ${thread.message_count || 0}<br>Follow-ups: ${thread.follow_up_count || 0}<br>${escapeHtml(thread.summary || '')}</div>
+          <div class="detail-box"><b>Suggested Reply</b>${escapeHtml(gemini.suggested_reply || 'No reply draft needed.')}</div>
+        </div>
+        <div class="email-actions">
+          <button class="mini-btn" onclick="approveEmail(${idx}, '${r.id}', '${r.thread_id}', '${r.action}', '${r.action}')">Approve</button>
+          <button class="mini-btn" onclick="approveEmail(${idx}, '${r.id}', '${r.thread_id}', '${r.action}', 'reply_now')">Mark Urgent</button>
+          <button class="mini-btn" onclick="approveEmail(${idx}, '${r.id}', '${r.thread_id}', '${r.action}', 'archive')">Archive</button>
+          <button class="mini-btn" onclick="approveEmail(${idx}, '${r.id}', '${r.thread_id}', '${r.action}', 'delay_reply')">Reply Later</button>
+          <button class="mini-btn" onclick="approveEmail(${idx}, '${r.id}', '${r.thread_id}', '${r.action}', 'mark_important')">Important</button>
+          <select class="mini-select" id="tone-${r.id}">
+            ${responseTones.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+          <button class="mini-btn" onclick="generateAiReply('${r.id}', '${r.thread_id}')">Generate AI Reply</button>
+        </div>
+        <div class="ai-reply-panel" id="ai-panel-${r.id}" style="display:none; margin-top:8px;">
+          <div class="ai-reply-preview" id="ai-preview-${r.id}" style="white-space:pre-wrap; background: rgba(255,255,255,0.02); padding:10px; border-radius:8px; margin-bottom:6px;">Generated reply will appear here</div>
+          <div style="display:flex; gap:8px;">
+            <button class="mini-btn" onclick="saveAiDraft('${r.id}', '${r.thread_id}', '${escapeHtml(r.sender)}', '${escapeHtml(r.subject)}')">Save to Drafts</button>
+            <button class="mini-btn" onclick="regenerateTone('${r.id}')">Regenerate Tone</button>
+            <button class="mini-btn" onclick="document.getElementById('ai-panel-${r.id}').style.display='none'">Close</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function approveEmail(idx, messageId, threadId, predictedAction, userAction) {
+    const card = document.getElementById('email-' + messageId);
+    const subject = card?.querySelector('.email-subject')?.textContent || '';
+    const sender = card?.querySelector('.email-meta')?.textContent?.split(' | ')[0] || '';
+    try {
+      const res = await fetch('/workflow/approve', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          message_id: messageId,
+          thread_id: threadId,
+          predicted_action: predictedAction,
+          user_action: userAction,
+          subject,
+          sender
+        })
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      let data;
+      if (!res.ok) {
+        const text = await res.text();
+        if (text && text.trim().startsWith('<')) {
+          console.error('Backend returned HTML error:', text.slice(0, 200));
+          throw new Error('Server error (HTML response). Check backend logs.');
+        }
+        try { data = JSON.parse(text || '{}'); } catch (e) { throw new Error('Invalid server response'); }
+        throw new Error(data.error || data.details || 'Approval failed');
+      }
+
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (text && text.trim().startsWith('<')) throw new Error('Server returned HTML');
+        try { data = JSON.parse(text || '{}'); } catch (e) { throw new Error('Invalid JSON response'); }
+      }
+
+      if (!data.success && !data.ok) {
+        throw new Error(data.error || data.details || 'Approval failed');
+      }
+
+      if (card) card.style.borderColor = 'rgba(34,197,94,0.55)';
+      pollWorkflowAnalytics();
+    } catch (err) {
+      // Better UI feedback: non-blocking notification
+      console.error('Action failed', err);
+      showToast('Action failed: ' + (err.message || err), 'error');
+    }
+  }
+
+  async function pollWorkflowAnalytics() {
+    try {
+      const res = await fetch('/workflow/analytics');
+      const data = await res.json();
+      document.getElementById('gm-feedback').textContent = data.feedback_events?.length || 0;
+      document.getElementById('gm-reward').textContent = average(data.reward_trend || []).toFixed(2);
+    } catch (_) {}
+  }
+
+  function average(values) {
+    if (!values.length) return 0;
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[ch]));
+  }
+
+  function showToast(message, type='info', timeout=5000) {
+    try {
+      const div = document.createElement('div');
+      div.className = 'toast ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+      div.textContent = message;
+      document.body.appendChild(div);
+      setTimeout(() => {
+        div.style.transition = 'opacity 250ms ease';
+        div.style.opacity = '0';
+        setTimeout(() => div.remove(), 300);
+      }, timeout);
+    } catch (e) { console.warn('showToast failed', e); }
+  }
+
+  // Default tones (will be refreshed from backend if available)
+  let responseTones = ['professional','friendly','formal','concise','enthusiastic','apologetic'];
+
+  async function generateAiReply(messageId, threadId) {
+    const card = document.getElementById('email-' + messageId);
+    if (!card) return showToast('Message card not found', 'error');
+    const subject = card?.querySelector('.email-subject')?.textContent || '';
+    const sender = card?.querySelector('.email-meta')?.textContent?.split(' | ')[0] || '';
+    const tone = document.getElementById('tone-' + messageId)?.value || 'professional';
+
+    try {
+      const res = await fetch('/api/responses/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          message_id: messageId,
+          thread_id: threadId,
+          sender: sender,
+          subject: subject,
+          body: '',
+          tone: tone,
+          require_approval: true
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Generation failed');
+
+      const previewEl = document.getElementById('ai-preview-' + messageId);
+      previewEl.textContent = data.generated_text || '(no reply generated)';
+      document.getElementById('ai-panel-' + messageId).style.display = 'block';
+
+      if (data.warnings && data.warnings.length) {
+        showToast('Generation warnings: ' + data.warnings.join('; '), 'error', 8000);
+      }
+    } catch (err) {
+      console.error('AI generation failed', err);
+      showToast('AI generation failed: ' + (err.message || err), 'error');
+    }
+  }
+
+  async function saveAiDraft(messageId, threadId, sender, subject) {
+    const previewEl = document.getElementById('ai-preview-' + messageId);
+    const body = previewEl?.textContent || '';
+    if (!body) return showToast('No generated text to save', 'error');
+
+    try {
+      const res = await fetch('/api/drafts/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          message_id: messageId,
+          thread_id: threadId,
+          to: sender,
+          subject: subject,
+          body: body,
+          labels: ['AI/Draft','AI/Pending Approval']
+        })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Save draft failed');
+      showToast('Draft saved (id=' + (data.draft.id || '?') + ')', 'success');
+    } catch (err) {
+      console.error('Save draft failed', err);
+      showToast('Save draft failed: ' + (err.message || err), 'error');
+    }
+  }
+
+  function regenerateTone(messageId) {
+    const tone = document.getElementById('tone-' + messageId)?.value || 'professional';
+    // Reuse generateAiReply to regenerate with selected tone
+    const card = document.getElementById('email-' + messageId);
+    const threadId = card?.getAttribute('data-thread-id') || '';
+    generateAiReply(messageId, threadId);
   }
 </script>
 </body>
