@@ -5,9 +5,10 @@ import sys
 
 import torch
 
+from agent.dqn import DQNAgent
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from agent.dqn import DQNAgent
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _MODELS = os.path.join(_HERE, "models")

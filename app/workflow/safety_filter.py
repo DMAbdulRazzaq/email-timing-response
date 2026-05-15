@@ -51,25 +51,31 @@ class SafetyFilter:
     # Patterns indicating potentially unsafe content
     DANGEROUS_PATTERNS = {
         "commitment_patterns": [
-            r"i\s+(?:will|guarantee|promise|ensure|commit to)\s+(?:deliver|complete|finish|implement)\s+by\s+\d+\s+(?:hours?|days?|weeks?)",
-            r"(?:we\s+can|i\s+can)\s+(?:deliver|complete)\s+this\s+(?:today|tomorrow|this\s+week)",
-            r"we\s+(?:guarantee|promise|assure)\s+(?:\d+%?\s+)?(?:success|completion|delivery)",
+            r"i\s+(?:will|guarantee|promise|ensure|commit to)\s+"
+            r"(?:deliver|complete|finish|implement)\s+by\s+\d+\s+"
+            r"(?:hours?|days?|weeks?)",
+            r"(?:we\s+can|i\s+can)\s+(?:deliver|complete)\s+this\s+"
+            r"(?:today|tomorrow|this\s+week)",
+            r"we\s+(?:guarantee|promise|assure)\s+(?:\d+%?\s+)?" r"(?:success|completion|delivery)",
         ],
         "scheduling_patterns": [
-            r"(?:meeting|call|sync)\s+(?:scheduled|booked|confirmed)\s+for\s+(?:tomorrow|next|monday|tuesday|wednesday|thursday|friday)",
-            r"i\s+(?:have|can)\s+(?:schedule|book)\s+(?:immediately|now|asap)",
+            r"(?:meeting|call|sync)\s+(?:scheduled|booked|confirmed)\s+"
+            r"for\s+(?:tomorrow|next|monday|tuesday|wednesday|thursday|friday)",
+            r"i\s+(?:have|can)\s+(?:schedule|book)\s+" r"(?:immediately|now|asap)",
         ],
         "overpromise_patterns": [
-            r"(?:definitely|absolutely|certainly|100%)\s+(?:will|can)\s+(?:fix|solve|resolve)",
+            r"(?:definitely|absolutely|certainly|100%)\s+(?:will|can)\s+" r"(?:fix|solve|resolve)",
             r"(?:no|never)\s+(?:problem|issue|concern|doubt)",
         ],
         "legal_patterns": [
             r"(?:contract|agreement|legal|liable|liability|lawsuit)",
-            r"(?:confidential|private|secret|proprietary)\s+(?:information|data|file)",
+            r"(?:confidential|private|secret|proprietary)\s+" r"(?:information|data|file)",
         ],
         "false_authority": [
-            r"(?:on\s+behalf\s+of|as\s+(?:the|a)\s+(?:CEO|CTO|founder))",
-            r"(?:i\s+am|i\'m)\s+(?:authorized|empowered|able)\s+to\s+(?:approve|sign|accept)\s+(?:the\s+)?(?:contract|agreement)",
+            r"(?:on\s+behalf\s+of|as\s+(?:the|a)\s+" r"(?:CEO|CTO|founder))",
+            r"(?:i\s+am|i\'m)\s+(?:authorized|empowered|able)\s+to\s+"
+            r"(?:approve|sign|accept)\s+(?:the\s+)?"
+            r"(?:contract|agreement)",
         ],
     }
 

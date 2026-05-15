@@ -15,7 +15,8 @@ from app.workflow.response_generator import ResponseGenerator
 
 def main():
     rg = ResponseGenerator()
-    # Prefer constructing a real Email dataclass if available; fallback to SimpleNamespace otherwise.
+    # Prefer constructing a real Email dataclass if available;
+    # fallback to SimpleNamespace otherwise.
     try:
         import importlib
 
@@ -42,13 +43,21 @@ def main():
             sender="recruiter@company.com",
             subject="Job Opportunity: Senior ML Engineer",
             body=(
-                "Hi,\n\nWe have a great role for a Senior ML Engineer focused on MLOps and email automation. "
-                "Would you be interested in a quick call to discuss?\n\nBest,\nRecruiter"
+                "Hi,\n\nWe have a great role for a Senior ML Engineer "
+                "focused on MLOps and email automation. "
+                "Would you be interested in a quick call to discuss?\n\n"
+                "Best,\nRecruiter"
             ),
         )
-        print("Falling back to SimpleNamespace for sample email (numpy or Email import missing)")
+        print("Falling back to SimpleNamespace for sample email " "(numpy or Email import missing)")
 
-    resp = rg.generate(email, tone="professional", thread=None, personalization={}, max_length=512)
+    resp = rg.generate(
+        email,
+        tone="professional",
+        thread=None,
+        personalization={},
+        max_length=512,
+    )
 
     out = {
         "message_id": getattr(resp, "message_id", email.message_id),

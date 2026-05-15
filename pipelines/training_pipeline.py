@@ -17,8 +17,6 @@ import time
 import mlflow
 import torch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from agent.dqn import DQNAgent
 from config import Config
 from environment.email_env import EmailEnvironment
@@ -34,6 +32,9 @@ from simulation.simulator import EmailSimulator
 from simulation.sources.enron import EnronSource
 from simulation.sources.synthetic import SyntheticEmailSource
 from training.trainer import Trainer
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 
 logger = get_logger(__name__)
 
@@ -140,7 +141,7 @@ def run(args=None):
         if use_mlflow:
             # Log sampled episodes to avoid excessive data (every log_every)
             for ep_idx in range(0, len(reward_history), max(1, args.log_every)):
-                window = reward_history[max(0, ep_idx - 500) : ep_idx + 1]
+                window = reward_history[max(0, ep_idx - 500):ep_idx+1]
                 avg_r = sum(window) / len(window) if window else 0.0
                 log_episode_metrics(
                     episode=ep_idx + 1,

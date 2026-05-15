@@ -1,9 +1,6 @@
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-
 from app.workflow.gemini_engine import GeminiContextEngine
 from app.workflow.preprocessing import parse_gmail_message
 from app.workflow.priority_engine import score_email, should_ignore_sender
@@ -11,6 +8,10 @@ from app.workflow.recommender import build_recommendation
 from app.workflow.storage import JsonlStore
 from app.workflow.thread_context import fetch_thread_context
 from gmail_auth import gmail_authenticate
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 
 RECOMMENDATIONS_FILE = ROOT / "data" / "recommendations.jsonl"
 

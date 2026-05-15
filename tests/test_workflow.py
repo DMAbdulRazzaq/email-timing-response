@@ -1,11 +1,11 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from app.workflow.feedback import reward_from_correction
 from app.workflow.priority_engine import score_email
 from app.workflow.schemas import EmailRecord
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 def test_recruiter_deadline_scores_urgent():

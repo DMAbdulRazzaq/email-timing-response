@@ -8,7 +8,6 @@ Provides feedback signals for RL training:
 - User satisfaction signals
 """
 
-import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path

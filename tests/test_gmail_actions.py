@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock
 
-import pytest
-
 
 def make_mock_service_for_draft(create_response=None, labels_list=None):
     svc = MagicMock()

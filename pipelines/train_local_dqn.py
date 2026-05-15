@@ -12,9 +12,6 @@ import pickle
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
 import mlflow
 
 from agent.dqn import DQNAgent
@@ -28,6 +25,10 @@ from monitoring.mlflow_logger import (
 )
 from simulation.simulator import EmailSimulator
 from simulation.sources.synthetic import SyntheticEmailSource
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 
 EPISODES = 12_000
 LOG_EVERY = 2_000

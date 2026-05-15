@@ -9,14 +9,6 @@ train_now.py
 import io
 import os
 import sys
-
-# Force UTF-8 output so logging never crashes on Windows
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-
-PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, PROJECT_DIR)
-
 import tarfile
 import time
 import urllib.request
@@ -30,7 +22,16 @@ from environment.email_env import EmailEnvironment
 from mlflow_config import MLflowConfig, init_mlflow
 from monitoring.mlflow_logger import log_model_artifact, log_training_params
 from simulation.simulator import EmailSimulator
+from simulation.sources.enron import EnronEmailSource
 from training.trainer import Trainer
+
+# Force UTF-8 output so logging never crashes on Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, PROJECT_DIR)
+
 
 ENRON_DIR = os.path.join(PROJECT_DIR, "enron_dataset")
 MODELS_DIR = os.path.join(PROJECT_DIR, "models")
@@ -73,7 +74,6 @@ else:
     print(f"Enron dataset already present at {ENRON_DIR}")
 
 # ── Email source ──────────────────────────────────────────────────────────────
-from simulation.sources.enron import EnronEmailSource
 
 
 def make_source():

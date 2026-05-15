@@ -9,7 +9,6 @@ Provides endpoints for:
 """
 
 import time
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -19,8 +18,7 @@ from app.workflow.personalization_memory import PersonalizationMemory
 from app.workflow.response_feedback import ResponseFeedbackTracker
 from app.workflow.response_generator import ResponseGenerator
 from app.workflow.safety_filter import SafetyFilter
-from app.workflow.schemas import EmailRecord, ThreadContext
-from app.workflow.thread_context import fetch_thread_context
+from app.workflow.schemas import EmailRecord
 from monitoring.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -118,7 +116,7 @@ async def generate_response(request: GenerateResponseRequest):
 
         # Get personalization hints
         personalization = personalization_memory.get_personalization_hints()
-        recommended_tone = personalization_memory.recommend_tone_for_sender(request.sender)
+        # recommended_tone = personalization_memory.recommend_tone_for_sender(request.sender)
 
         # Generate response
         start_time = time.time()
@@ -214,12 +212,10 @@ async def regenerate_with_tone(request: RegenerateRequest):
 async def record_feedback(request: FeedbackRequest):
     """
     Record user feedback on AI-generated response.
-
     This feedback:
     - Updates personalization memory
     - Generates RL reward signals
-    - Improves future generations
-    """
+    - Improves future generations"""
     try:
         logger.info(f"Recording feedback: {request.feedback_type} for {request.response_id}")
 
@@ -232,7 +228,6 @@ async def record_feedback(request: FeedbackRequest):
             approval_time_seconds=request.approval_time_seconds,
             feedback_notes=request.feedback_notes,
         )
-
         # Also record in personalization memory
         personalization_memory.record_action(
             response_id=request.response_id,

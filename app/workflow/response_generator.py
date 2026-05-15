@@ -205,12 +205,30 @@ Return ONLY valid JSON with no markdown formatting:
     def _get_tone_description(self, tone: str) -> str:
         """Get detailed guidance for specific tone."""
         descriptions = {
-            "professional": "Formal, business-appropriate. Use clear sentences. Maintain distance. Focus on facts.",
-            "friendly": "Warm but professional. Use conversational language. Show genuine interest. Be approachable.",
-            "formal": "Very formal. Use titles, proper grammar. Minimize contractions. Highly structured.",
-            "concise": "Brief and to-the-point. Bullet points acceptable. Remove fluff. Direct communication.",
-            "enthusiastic": "Positive and energetic. Show genuine interest. Use exclamation points sparingly. Engaged tone.",
-            "apologetic": "Acknowledge issues. Show understanding. Provide solutions. Rebuild trust. Take responsibility.",
+            "professional": (
+                "Formal, business-appropriate. Use clear sentences. "
+                "Maintain distance. Focus on facts."
+            ),
+            "friendly": (
+                "Warm but professional. Use conversational language. "
+                "Show genuine interest. Be approachable."
+            ),
+            "formal": (
+                "Very formal. Use titles, proper grammar. Minimize contractions. "
+                "Highly structured."
+            ),
+            "concise": (
+                "Brief and to-the-point. Bullet points acceptable. Remove fluff. "
+                "Direct communication."
+            ),
+            "enthusiastic": (
+                "Positive and energetic. Show genuine interest. "
+                "Use exclamation points sparingly. Engaged tone."
+            ),
+            "apologetic": (
+                "Acknowledge issues. Show understanding. Provide solutions. "
+                "Rebuild trust. Take responsibility."
+            ),
         }
         return descriptions.get(tone, descriptions["professional"])
 
@@ -271,13 +289,35 @@ Return ONLY valid JSON with no markdown formatting:
         error: str = "",
     ) -> GeneratedResponse:
         """Provide fallback response when API unavailable."""
+        sender_name = email.sender.split()[0] if email.sender else "there"
+        subject_preview = email.subject[:30]
+        subject_short = email.subject[:20]
+
         fallback_templates = {
-            "professional": f"Hi {email.sender.split()[0] if email.sender else 'there'},\n\nThank you for your email regarding {email.subject[:30]}. I appreciate you reaching out.\n\nBest regards",
-            "friendly": f"Hi {email.sender.split()[0] if email.sender else 'there'}!\n\nThanks for reaching out about {email.subject[:30]}. I really appreciate it!\n\nTalk soon!",
-            "formal": f"Dear {email.sender},\n\nThank you for your communication regarding {email.subject[:30]}. Your message has been received and acknowledged.\n\nRespectfully",
-            "concise": f"Hi,\n\nThanks for the message. Noted.\n\nBest",
-            "enthusiastic": f"Hey {email.sender.split()[0] if email.sender else 'there'}!\n\nLove the {email.subject[:20]}! Excited to dive into this!\n\nCheers!",
-            "apologetic": f"Hi {email.sender.split()[0] if email.sender else 'there'},\n\nI sincerely apologize for any inconvenience. I'm committed to making this right.\n\nBest regards",
+            "professional": (
+                f"Hi {sender_name},\n\nThank you for your email regarding "
+                f"{subject_preview}. I appreciate you reaching out.\n\n"
+                "Best regards"
+            ),
+            "friendly": (
+                f"Hi {sender_name}!\n\nThanks for reaching out about "
+                f"{subject_preview}. I really appreciate it!\n\nTalk soon!"
+            ),
+            "formal": (
+                f"Dear {email.sender},\n\nThank you for your communication "
+                f"regarding {subject_preview}. Your message has been received "
+                "and acknowledged.\n\nRespectfully"
+            ),
+            "concise": "Hi,\n\nThanks for the message. Noted.\n\nBest",
+            "enthusiastic": (
+                f"Hey {sender_name}!\n\nLove the {subject_short}! "
+                "Excited to dive into this!\n\nCheers!"
+            ),
+            "apologetic": (
+                f"Hi {sender_name},\n\nI sincerely apologize for any "
+                "inconvenience. I'm committed to making this right.\n\n"
+                "Best regards"
+            ),
         }
 
         warning = "API unavailable - using template fallback"
