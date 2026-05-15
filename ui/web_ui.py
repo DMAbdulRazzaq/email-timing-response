@@ -1,26 +1,121 @@
+# """
+# web_ui.py  —  Flask inference server for the RL Email Triage Agent.
+# """
+
+# import os
+# import sys
+# from datetime import datetime
+# from pathlib import Path
+
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+# import logging
+
+# import torch
+# from flask import Flask, jsonify, render_template, request
+
+# # Response generation / personalization (exported instances)
+# from app.api.response_routes import (
+#     feedback_tracker,
+#     personalization_memory,
+#     response_generator,
+#     safety_filter,
+# )
+# from app.workflow.actions import apply_approved_action
+# from app.workflow.analytics import build_dashboard_metrics
+# from app.workflow.feedback import FeedbackStore
+# from app.workflow.gemini_engine import GeminiContextEngine
+
+# # Workflow utilities
+# from app.workflow.preprocessing import parse_gmail_message
+# from app.workflow.priority_engine import score_email, should_ignore_sender
+# from app.workflow.recommender import build_recommendation
+# from app.workflow.reply_service import create_reply_draft
+# from app.workflow.thread_context import fetch_thread_context
+# from config import Config
+# from data.email_data import Email
+# from environment.reward import RewardCalculator
+# from gmail_auth import gmail_authenticate
+# from main import get_trained_agent
+# from mlflow_config import MLflowConfig, init_mlflow
+
+# # Local/session services
+# from simulation.sources.nlp_extractor import NLPEmailExtractor
+# from simulation.sources.sender_memory import SenderMemory
+
+# # Application and logging
+# app = Flask(__name__)
+# logger = logging.getLogger("rl-email-agent")
+# _arrival_times: dict = {}
+
+# # Instantiate session-scoped services used by the UI layer
+# gemini_engine = GeminiContextEngine()
+# feedback_store = FeedbackStore()
+# extractor = NLPEmailExtractor()
+# sender_memory = SenderMemory()
+
 """
 web_ui.py  —  Flask inference server for the RL Email Triage Agent.
 """
 
+# =========================
+# STANDARD LIBRARY IMPORTS
+# =========================
+import logging
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
 
+# =========================
+# THIRD-PARTY IMPORTS
+# =========================
+import torch
+from flask import Flask, jsonify, render_template, request
+
+# Response generation / personalization
+from app.api.response_routes import (feedback_tracker, personalization_memory,
+                                     response_generator, safety_filter)
+from app.workflow.actions import apply_approved_action
+from app.workflow.analytics import build_dashboard_metrics
+from app.workflow.feedback import FeedbackStore
+from app.workflow.gemini_engine import GeminiContextEngine
+# Workflow utilities
+from app.workflow.preprocessing import parse_gmail_message
+from app.workflow.priority_engine import score_email, should_ignore_sender
+from app.workflow.recommender import build_recommendation
+from app.workflow.reply_service import create_reply_draft
+from app.workflow.thread_context import fetch_thread_context
+from config import Config
+from data.email_data import Email
+from environment.reward import RewardCalculator
+from gmail_auth import gmail_authenticate
+from main import get_trained_agent
+from mlflow_config import MLflowConfig, init_mlflow
+# Local/session services
+from simulation.sources.nlp_extractor import NLPEmailExtractor
+from simulation.sources.sender_memory import SenderMemory
+
+# =========================
+# LOCAL APPLICATION IMPORTS
+# =========================
+
+# =========================
+# PATH CONFIGURATION
+# =========================
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import torch
-import logging
-from flask import Flask, jsonify, render_template, request
-from data.email_data import Email
-from config import Config
-from main import get_trained_agent
-from gmail_auth import gmail_authenticate
-
-# Application and logging
+# =========================
+# APPLICATION SETUP
+# =========================
 app = Flask(__name__)
 logger = logging.getLogger("rl-email-agent")
 _arrival_times: dict = {}
+
+# Instantiate session-scoped services used by the UI layer
+gemini_engine = GeminiContextEngine()
+feedback_store = FeedbackStore()
+extractor = NLPEmailExtractor()
+sender_memory = SenderMemory()
 
 # ── Learning validation: session reward tracking ──────────────────────────────
 ROLLING_WINDOW = 50  # last N decisions for rolling average
@@ -208,20 +303,14 @@ def gmail_inbox():
     query = request.args.get("q", "in:inbox newer_than:14d")
     service = get_gmail_service()
     results = (
-        service.users()
-        .messages()
-        .list(userId="me", q=query, maxResults=max_results)
-        .execute()
+        service.users().messages().list(userId="me", q=query, maxResults=max_results).execute()
     )
     messages = results.get("messages", [])
     records = []
 
     for item in messages:
         raw_message = (
-            service.users()
-            .messages()
-            .get(userId="me", id=item["id"], format="full")
-            .execute()
+            service.users().messages().get(userId="me", id=item["id"], format="full").execute()
         )
         email_record = parse_gmail_message(raw_message)
 
@@ -286,15 +375,31 @@ def workflow_approve():
         try:
             apply_approved_action(service, message_id, user_action)
         except Exception as e:
-            logger.exception("Failed to apply gmail action %s for %s: %s", user_action, message_id, e)
-            return jsonify({"success": False, "error": "Failed to apply Gmail action", "details": str(e)}), 500
+            logger.exception(
+                "Failed to apply gmail action %s for %s: %s", user_action, message_id, e
+            )
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to apply Gmail action", "details": str(e)}
+                ),
+                500,
+            )
 
         if user_action == "reply_now" and draft_text:
             try:
                 create_reply_draft(service, sender, subject, draft_text, thread_id)
             except Exception as e:
                 logger.exception("Failed to create reply draft for %s: %s", message_id, e)
-                return jsonify({"success": False, "error": "Failed to create reply draft", "details": str(e)}), 500
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Failed to create reply draft",
+                            "details": str(e),
+                        }
+                    ),
+                    500,
+                )
 
         # Log MLflow metrics but do not allow logging errors to break the response
         try:
@@ -512,11 +617,12 @@ def decide():
 
 # ── AI Response Generation Routes ────────────────────────────────────────────
 
+
 @app.route("/api/responses/generate", methods=["POST"])
 def generate_ai_response():
     """
     Generate AI response draft for an email.
-    
+
     JSON request:
     {
         "message_id": "...",
@@ -529,9 +635,9 @@ def generate_ai_response():
     """
     try:
         data = request.get_json()
-        
+
         from app.workflow.schemas import EmailRecord
-        
+
         email = EmailRecord(
             id=data.get("message_id", ""),
             thread_id=data.get("thread_id", ""),
@@ -539,14 +645,14 @@ def generate_ai_response():
             subject=data.get("subject", ""),
             body=data.get("body", ""),
         )
-        
+
         tone = data.get("tone", "professional")
         if tone not in response_generator.SUPPORTED_TONES:
             tone = "professional"
-        
+
         # Get personalization hints
         personalization = personalization_memory.get_personalization_hints()
-        
+
         # Generate response
         generated = response_generator.generate(
             email=email,
@@ -554,30 +660,32 @@ def generate_ai_response():
             personalization=personalization,
             max_length=data.get("max_length", 500),
         )
-        
+
         # Safety check
         safety_result = safety_filter.validate(
             generated.generated_text,
             sender=email.sender,
         )
-        
+
         requires_approval = (
-            not safety_result.is_safe or
-            generated.confidence < 0.7 or
-            data.get("require_approval", True)
+            not safety_result.is_safe
+            or generated.confidence < 0.7
+            or data.get("require_approval", True)
         )
-        
-        return jsonify({
-            "success": True,
-            "response_id": generated.message_id,
-            "generated_text": generated.generated_text,
-            "tone_used": generated.tone_used,
-            "confidence": generated.confidence,
-            "warnings": generated.warnings + safety_result.warnings,
-            "requires_approval": requires_approval,
-            "safety": safety_result.to_dict(),
-        })
-    
+
+        return jsonify(
+            {
+                "success": True,
+                "response_id": generated.message_id,
+                "generated_text": generated.generated_text,
+                "tone_used": generated.tone_used,
+                "confidence": generated.confidence,
+                "warnings": generated.warnings + safety_result.warnings,
+                "requires_approval": requires_approval,
+                "safety": safety_result.to_dict(),
+            }
+        )
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -586,7 +694,7 @@ def generate_ai_response():
 def regenerate_ai_response():
     """
     Regenerate response with different tone.
-    
+
     JSON request:
     {
         "response_id": "...",
@@ -596,14 +704,15 @@ def regenerate_ai_response():
     try:
         data = request.get_json()
         new_tone = data.get("new_tone", "professional")
-        
+
         if new_tone not in response_generator.SUPPORTED_TONES:
             return jsonify({"success": False, "error": f"Unsupported tone: {new_tone}"}), 400
-        
+
         personalization = personalization_memory.get_personalization_hints()
-        
+
         # Create minimal email for regeneration
         from app.workflow.schemas import EmailRecord
+
         email = EmailRecord(
             id=data.get("response_id", ""),
             thread_id="",
@@ -611,23 +720,25 @@ def regenerate_ai_response():
             subject="",
             body="",
         )
-        
+
         generated = response_generator.generate(
             email=email,
             tone=new_tone,
             personalization=personalization,
         )
-        
+
         safety_result = safety_filter.validate(generated.generated_text)
-        
-        return jsonify({
-            "success": True,
-            "generated_text": generated.generated_text,
-            "tone_used": generated.tone_used,
-            "confidence": generated.confidence,
-            "warnings": safety_result.warnings,
-        })
-    
+
+        return jsonify(
+            {
+                "success": True,
+                "generated_text": generated.generated_text,
+                "tone_used": generated.tone_used,
+                "confidence": generated.confidence,
+                "warnings": safety_result.warnings,
+            }
+        )
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -636,7 +747,7 @@ def regenerate_ai_response():
 def record_response_feedback():
     """
     Record user feedback on AI-generated response.
-    
+
     JSON request:
     {
         "response_id": "...",
@@ -648,11 +759,11 @@ def record_response_feedback():
     """
     try:
         data = request.get_json()
-        
+
         feedback_type = data.get("feedback_type", "approved")
         if feedback_type not in ["approved", "edited", "rejected"]:
             return jsonify({"success": False, "error": "Invalid feedback_type"}), 400
-        
+
         # Record in feedback tracker
         feedback = feedback_tracker.record_feedback(
             response_id=data.get("response_id", ""),
@@ -663,7 +774,7 @@ def record_response_feedback():
             approval_time_seconds=data.get("approval_time_seconds", 0.0),
             feedback_notes=data.get("feedback_notes", ""),
         )
-        
+
         # Record in personalization memory
         personalization_memory.record_action(
             response_id=data.get("response_id", ""),
@@ -674,13 +785,15 @@ def record_response_feedback():
             user_text=data.get("edited_text", ""),
             feedback=data.get("feedback_notes", ""),
         )
-        
-        return jsonify({
-            "success": True,
-            "reward": feedback.reward_signal,
-            "feedback_type": feedback_type,
-        })
-    
+
+        return jsonify(
+            {
+                "success": True,
+                "reward": feedback.reward_signal,
+                "feedback_type": feedback_type,
+            }
+        )
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -688,13 +801,15 @@ def record_response_feedback():
 @app.route("/api/responses/tones", methods=["GET"])
 def get_supported_tones():
     """Get list of supported response tones."""
-    return jsonify({
-        "tones": response_generator.SUPPORTED_TONES,
-        "descriptions": {
-            tone: response_generator._get_tone_description(tone)
-            for tone in response_generator.SUPPORTED_TONES
-        },
-    })
+    return jsonify(
+        {
+            "tones": response_generator.SUPPORTED_TONES,
+            "descriptions": {
+                tone: response_generator._get_tone_description(tone)
+                for tone in response_generator.SUPPORTED_TONES
+            },
+        }
+    )
 
 
 @app.route("/api/responses/personalization", methods=["GET"])
@@ -710,7 +825,8 @@ def api_create_draft():
     try:
         data = request.get_json()
         # Lazy import to avoid circulars during module load
-        from app.workflow.gmail_actions import create_ai_draft, get_draft_preview
+        from app.workflow.gmail_actions import (create_ai_draft,
+                                                get_draft_preview)
 
         service = get_gmail_service()
         draft = create_ai_draft(
@@ -736,7 +852,7 @@ def api_create_draft():
 def api_update_draft():
     try:
         data = request.get_json()
-        from app.workflow.gmail_actions import update_draft, get_draft_preview
+        from app.workflow.gmail_actions import get_draft_preview, update_draft
 
         service = get_gmail_service()
         updated = update_draft(
@@ -768,7 +884,8 @@ def api_send_draft():
         if not draft_id:
             return jsonify({"success": False, "error": "draft_id required"}), 400
 
-        from app.workflow.gmail_actions import send_draft, get_draft
+        from app.workflow.gmail_actions import get_draft, send_draft
+
         service = get_gmail_service()
         sent = send_draft(service, draft_id)
 
@@ -803,7 +920,7 @@ def api_send_draft():
                     tone="unknown",
                     generated_text="",
                     user_text="",
-                    feedback="sent"
+                    feedback="sent",
                 )
             except Exception:
                 pass
@@ -811,6 +928,7 @@ def api_send_draft():
             # Log to MLflow (best-effort)
             try:
                 import mlflow
+
                 init_mlflow(MLflowConfig.EXPERIMENT_INFERENCE)
                 with mlflow.start_run(run_name="ui-draft-send", nested=True):
                     mlflow.log_param("draft_id", draft_id)
@@ -840,11 +958,13 @@ def api_send_draft():
 @app.route("/api/responses/stats", methods=["GET"])
 def get_response_stats():
     """Get response generation statistics."""
-    return jsonify({
-        "feedback_stats": feedback_tracker.get_session_stats(),
-        "tone_performance": feedback_tracker.get_tone_performance(),
-        "filter_stats": safety_filter.get_stats(),
-    })
+    return jsonify(
+        {
+            "feedback_stats": feedback_tracker.get_session_stats(),
+            "tone_performance": feedback_tracker.get_tone_performance(),
+            "filter_stats": safety_filter.get_stats(),
+        }
+    )
 
 
 if __name__ == "__main__":

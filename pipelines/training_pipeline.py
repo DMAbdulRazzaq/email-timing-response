@@ -24,12 +24,8 @@ from config import Config
 from environment.email_env import EmailEnvironment
 from mlflow_config import MLflowConfig, init_mlflow
 from monitoring.logging_config import get_logger
-from monitoring.mlflow_logger import (
-    log_episode_metrics,
-    log_model_artifact,
-    log_reward_curve,
-    log_training_params,
-)
+from monitoring.mlflow_logger import (log_episode_metrics, log_model_artifact,
+                                      log_reward_curve, log_training_params)
 from simulation.simulator import EmailSimulator
 from simulation.sources.enron import EnronSource
 from simulation.sources.synthetic import SyntheticEmailSource

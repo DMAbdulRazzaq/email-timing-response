@@ -25,4 +25,3 @@ class JsonlStore:
                 if line:
                     records.append(json.loads(line))
         return records
-

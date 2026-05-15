@@ -70,4 +70,3 @@ def parse_gmail_message(message: dict[str, Any]) -> EmailRecord:
         timestamp=timestamp,
         labels=message.get("labelIds", []),
     )
-

@@ -1,7 +1,6 @@
 from base64 import urlsafe_b64encode
 from email.message import EmailMessage
 
-
 SYSTEM_LABELS = {
     "reply_now": "AI/Reply Now",
     "delay_reply": "AI/Delay Reply",
@@ -59,7 +58,7 @@ def create_ai_draft(
 ) -> dict:
     """
     Create a Gmail draft from AI-generated response.
-    
+
     Args:
         service: Gmail API service
         to_address: Recipient email
@@ -67,7 +66,7 @@ def create_ai_draft(
         body_text: Email body (AI-generated)
         thread_id: Thread ID to attach to
         labels: Optional labels to apply
-        
+
     Returns:
         Created draft object
     """
@@ -75,10 +74,10 @@ def create_ai_draft(
     message["To"] = to_address
     message["Subject"] = subject if subject.lower().startswith("re:") else f"Re: {subject}"
     message.set_content(body_text)
-    
+
     # Add X-AI-Generated header for tracking
     message["X-AI-Generated"] = "true"
-    
+
     encoded = urlsafe_b64encode(message.as_bytes()).decode("utf-8")
     draft_body = {
         "message": {
@@ -86,9 +85,9 @@ def create_ai_draft(
             "threadId": thread_id,
         }
     }
-    
+
     draft = service.users().drafts().create(userId="me", body=draft_body).execute()
-    
+
     # Apply labels if provided
     if labels:
         ensure_ai_labels(service)
@@ -98,14 +97,12 @@ def create_ai_draft(
             for label_name in labels:
                 label_id = ensure_label(service, label_name)
                 label_ids.append(label_id)
-            
+
             if label_ids:
                 service.users().messages().modify(
-                    userId="me",
-                    id=draft_message_id,
-                    body={"addLabelIds": label_ids}
+                    userId="me", id=draft_message_id, body={"addLabelIds": label_ids}
                 ).execute()
-    
+
     return draft
 
 
@@ -117,22 +114,22 @@ def ensure_ai_labels(service) -> dict[str, str]:
         "AI/Sent": "AI/Sent",
         "AI/Feedback": "AI/Feedback",
     }
-    
+
     label_ids = {}
     for key, label_name in ai_labels.items():
         label_ids[key] = ensure_label(service, label_name)
-    
+
     return label_ids
 
 
 def send_draft(service, draft_id: str) -> dict:
     """
     Send a saved draft.
-    
+
     Args:
         service: Gmail API service
         draft_id: Draft ID to send
-        
+
     Returns:
         Sent message object
     """
@@ -149,7 +146,7 @@ def update_draft(
 ) -> dict:
     """
     Update an existing draft with new content.
-    
+
     Args:
         service: Gmail API service
         draft_id: Draft ID to update
@@ -157,7 +154,7 @@ def update_draft(
         subject: Email subject
         body_text: Updated email body
         thread_id: Thread ID
-        
+
     Returns:
         Updated draft object
     """
@@ -166,7 +163,7 @@ def update_draft(
     message["Subject"] = subject if subject.lower().startswith("re:") else f"Re: {subject}"
     message.set_content(body_text)
     message["X-AI-Generated"] = "true"
-    
+
     encoded = urlsafe_b64encode(message.as_bytes()).decode("utf-8")
     draft_body = {
         "message": {
@@ -174,12 +171,8 @@ def update_draft(
             "threadId": thread_id,
         }
     }
-    
-    return service.users().drafts().update(
-        userId="me",
-        id=draft_id,
-        body=draft_body
-    ).execute()
+
+    return service.users().drafts().update(userId="me", id=draft_id, body=draft_body).execute()
 
 
 def get_draft(service, draft_id: str) -> dict:
@@ -202,38 +195,37 @@ def mark_draft_approved(service, draft_id: str) -> None:
     """Mark draft as AI-approved."""
     draft = get_draft(service, draft_id)
     message_id = draft.get("message", {}).get("id")
-    
+
     if message_id:
         label_id = ensure_label(service, "AI/Pending Approval")
         remove_label_id = ensure_label(service, "AI/Draft")
-        
+
         service.users().messages().modify(
             userId="me",
             id=message_id,
             body={
                 "addLabelIds": [label_id],
                 "removeLabelIds": [remove_label_id],
-            }
+            },
         ).execute()
 
 
 def get_draft_preview(service, draft_id: str) -> dict:
     """
     Get readable preview of draft content.
-    
+
     Returns:
         Dict with to, subject, snippet
     """
     draft = get_draft(service, draft_id)
     message = draft.get("message", {})
     headers = message.get("payload", {}).get("headers", [])
-    
+
     header_dict = {h["name"]: h["value"] for h in headers}
-    
+
     return {
         "draft_id": draft_id,
         "to": header_dict.get("To", ""),
         "subject": header_dict.get("Subject", ""),
         "snippet": message.get("snippet", "")[:100],
     }
-

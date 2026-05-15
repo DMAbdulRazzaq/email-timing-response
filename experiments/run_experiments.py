@@ -5,12 +5,14 @@ Produces JSONL results and queue-length CSVs for plotting.
 Usage:
     python experiments/run_experiments.py --config experiments/exp_config.yaml
 """
+
 import argparse
 import json
 import os
 import random
 import time
 from pathlib import Path
+
 import yaml
 
 RESULTS_DIR = Path("data/experiments")
@@ -34,7 +36,11 @@ def run_episode(env, policy, max_steps):
         action = policy(obs)
         obs, reward, done, info = env.step(action)
         total_reward += reward
-        pending = getattr(info, "pending", None) or info.get("pending", None) or info.get("queue_length", 0)
+        pending = (
+            getattr(info, "pending", None)
+            or info.get("pending", None)
+            or info.get("queue_length", 0)
+        )
         pending_over_time.append(int(pending))
         step += 1
         if done:
@@ -88,7 +94,7 @@ def main(cfg_path):
     baseline_policy = heuristic_policy
     dqn_policy = None
     if cfg.get("dqn_checkpoint"):
-        dqn_policy = load_policy_from_checkpoint(cfg["dqn_checkpoint"]) 
+        dqn_policy = load_policy_from_checkpoint(cfg["dqn_checkpoint"])
     else:
         dqn_policy = baseline_policy
 

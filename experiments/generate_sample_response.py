@@ -5,6 +5,7 @@ This script uses fallback templates if the Gemini API key is not set.
 Usage:
     python experiments/generate_sample_response.py
 """
+
 import json
 from pathlib import Path
 from types import SimpleNamespace

@@ -4,9 +4,10 @@ Usage:
     python experiments/aggregate_results.py
 Reads `data/experiments/summary.json` and writes `data/experiments/aggregate_table.json`.
 """
+
 import json
-from pathlib import Path
 import statistics
+from pathlib import Path
 
 RESULTS_DIR = Path("data/experiments")
 SUMMARY_PATH = RESULTS_DIR / "summary.json"
@@ -19,7 +20,14 @@ def safe_mean(xs):
 
 def aggregate(policy_results):
     rewards = [r.get("total_reward") for r in policy_results if r.get("total_reward") is not None]
-    pending_means = [ (sum(r.get("pending_over_time",[]))/len(r.get("pending_over_time",[]))) if r.get("pending_over_time") else None for r in policy_results]
+    pending_means = [
+        (
+            (sum(r.get("pending_over_time", [])) / len(r.get("pending_over_time", [])))
+            if r.get("pending_over_time")
+            else None
+        )
+        for r in policy_results
+    ]
     # filter None
     pending_means = [p for p in pending_means if p is not None]
 

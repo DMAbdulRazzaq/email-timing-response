@@ -1,6 +1,5 @@
 from app.workflow.schemas import EmailRecord
 
-
 IGNORE_SENDERS = ["canva", "newsletter", "marketing", "noreply"]
 HIRING_KEYWORDS = ["interview", "recruiter", "hiring", "job", "internship", "offer"]
 DEADLINE_KEYWORDS = ["deadline", "due", "last date", "expires", "today", "tomorrow", "urgent"]
@@ -57,4 +56,3 @@ def _category(score: int) -> str:
     if score >= 15:
         return "PROMOTION"
     return "SPAM"
-

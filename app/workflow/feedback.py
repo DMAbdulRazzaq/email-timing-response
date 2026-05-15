@@ -3,7 +3,6 @@ from pathlib import Path
 from app.workflow.schemas import FeedbackEvent
 from app.workflow.storage import JsonlStore
 
-
 ACTION_REWARD = {
     ("reply_now", "reply_now"): 10.0,
     ("mark_important", "mark_important"): 7.0,
@@ -48,4 +47,3 @@ def reward_from_correction(recommended_action: str, user_action: str) -> float:
     if recommended_action == user_action:
         return 4.0
     return -4.0
-

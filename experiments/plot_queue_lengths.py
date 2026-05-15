@@ -3,8 +3,10 @@
 Reads JSON summary produced by `experiments/run_experiments.py` at `data/experiments/summary.json`.
 Generates `data/experiments/queue_length_comparison.png`.
 """
+
 import json
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 

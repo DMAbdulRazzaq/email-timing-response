@@ -1,4 +1,5 @@
-from app.workflow.schemas import ActionRecommendation, EmailRecord, IntelligenceResult, ThreadContext
+from app.workflow.schemas import (ActionRecommendation, EmailRecord,
+                                  IntelligenceResult, ThreadContext)
 
 
 def build_recommendation(
@@ -30,4 +31,3 @@ def build_recommendation(
         requires_approval=action in {"reply_now", "archive", "mark_important"},
         draft_text=intelligence.suggested_reply,
     )
-

@@ -1,7 +1,6 @@
 from app.workflow.preprocessing import parse_gmail_message
 from app.workflow.schemas import ThreadContext
 
-
 FOLLOW_UP_TERMS = ["follow up", "following up", "reminder", "checking in", "any update"]
 
 
@@ -28,4 +27,3 @@ def _compact_summary(messages) -> str:
         return ""
     snippets = [f"{msg.sender}: {msg.subject}" for msg in messages[-4:]]
     return " | ".join(snippets)
-

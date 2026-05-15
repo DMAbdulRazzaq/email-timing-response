@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/gmail.modify"
+    "https://www.googleapis.com/auth/gmail.modify",
 ]
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -47,10 +47,7 @@ def gmail_authenticate():
             creds.refresh(Request())
 
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                get_credentials_file(),
-                SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(get_credentials_file(), SCOPES)
 
             try:
                 creds = flow.run_local_server(

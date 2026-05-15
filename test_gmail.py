@@ -5,7 +5,6 @@ from pathlib import Path
 
 from gmail_auth import gmail_authenticate
 
-
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_FILE = BASE_DIR / "data" / "processed_emails.json"
 
@@ -151,10 +150,15 @@ def classify_email(sender, subject, body):
 
 service = gmail_authenticate()
 
-results = service.users().messages().list(
-    userId="me",
-    maxResults=5,
-).execute()
+results = (
+    service.users()
+    .messages()
+    .list(
+        userId="me",
+        maxResults=5,
+    )
+    .execute()
+)
 
 messages = results.get("messages", [])
 
@@ -163,11 +167,16 @@ print(f"\nTotal Messages Fetched: {len(messages)}\n")
 processed_emails = []
 
 for msg in messages:
-    message = service.users().messages().get(
-        userId="me",
-        id=msg["id"],
-        format="full",
-    ).execute()
+    message = (
+        service.users()
+        .messages()
+        .get(
+            userId="me",
+            id=msg["id"],
+            format="full",
+        )
+        .execute()
+    )
 
     payload = message["payload"]
     headers = payload.get("headers", [])

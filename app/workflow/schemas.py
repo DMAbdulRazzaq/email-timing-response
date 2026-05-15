@@ -2,7 +2,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-
 ACTION_LABELS = ["reply_now", "delay_reply", "mark_important", "archive"]
 
 
@@ -80,4 +79,3 @@ class FeedbackEvent:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-

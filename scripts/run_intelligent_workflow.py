@@ -4,14 +4,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from gmail_auth import gmail_authenticate
 from app.workflow.gemini_engine import GeminiContextEngine
 from app.workflow.preprocessing import parse_gmail_message
-from app.workflow.priority_engine import should_ignore_sender, score_email
+from app.workflow.priority_engine import score_email, should_ignore_sender
 from app.workflow.recommender import build_recommendation
 from app.workflow.storage import JsonlStore
 from app.workflow.thread_context import fetch_thread_context
-
+from gmail_auth import gmail_authenticate
 
 RECOMMENDATIONS_FILE = ROOT / "data" / "recommendations.jsonl"
 
@@ -27,12 +26,7 @@ def fetch_inbox_messages(service, max_results: int = 10) -> list[dict]:
 
 
 def fetch_message(service, message_id: str) -> dict:
-    return (
-        service.users()
-        .messages()
-        .get(userId="me", id=message_id, format="full")
-        .execute()
-    )
+    return service.users().messages().get(userId="me", id=message_id, format="full").execute()
 
 
 def run(max_results: int = 10) -> None:
