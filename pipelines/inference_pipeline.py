@@ -126,8 +126,7 @@ def run_batch(agent, emails: list, output_path: str, version: str, use_mlflow: b
             import mlflow
 
             from mlflow_config import MLflowConfig, init_mlflow
-            from monitoring.mlflow_logger import (log_drift_report,
-                                                  log_inference_metrics)
+            from monitoring.mlflow_logger import log_drift_report, log_inference_metrics
 
             init_mlflow(MLflowConfig.EXPERIMENT_INFERENCE)
             with mlflow.start_run(run_name=f"inference-batch-{time.strftime('%Y%m%d_%H%M%S')}"):

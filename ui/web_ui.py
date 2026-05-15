@@ -73,12 +73,17 @@ import torch
 from flask import Flask, jsonify, render_template, request
 
 # Response generation / personalization
-from app.api.response_routes import (feedback_tracker, personalization_memory,
-                                     response_generator, safety_filter)
+from app.api.response_routes import (
+    feedback_tracker,
+    personalization_memory,
+    response_generator,
+    safety_filter,
+)
 from app.workflow.actions import apply_approved_action
 from app.workflow.analytics import build_dashboard_metrics
 from app.workflow.feedback import FeedbackStore
 from app.workflow.gemini_engine import GeminiContextEngine
+
 # Workflow utilities
 from app.workflow.preprocessing import parse_gmail_message
 from app.workflow.priority_engine import score_email, should_ignore_sender
@@ -91,6 +96,7 @@ from environment.reward import RewardCalculator
 from gmail_auth import gmail_authenticate
 from main import get_trained_agent
 from mlflow_config import MLflowConfig, init_mlflow
+
 # Local/session services
 from simulation.sources.nlp_extractor import NLPEmailExtractor
 from simulation.sources.sender_memory import SenderMemory
@@ -825,8 +831,7 @@ def api_create_draft():
     try:
         data = request.get_json()
         # Lazy import to avoid circulars during module load
-        from app.workflow.gmail_actions import (create_ai_draft,
-                                                get_draft_preview)
+        from app.workflow.gmail_actions import create_ai_draft, get_draft_preview
 
         service = get_gmail_service()
         draft = create_ai_draft(

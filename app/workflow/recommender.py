@@ -1,5 +1,9 @@
-from app.workflow.schemas import (ActionRecommendation, EmailRecord,
-                                  IntelligenceResult, ThreadContext)
+from app.workflow.schemas import (
+    ActionRecommendation,
+    EmailRecord,
+    IntelligenceResult,
+    ThreadContext,
+)
 
 
 def build_recommendation(
