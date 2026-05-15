@@ -141,7 +141,7 @@ def run(args=None):
         if use_mlflow:
             # Log sampled episodes to avoid excessive data (every log_every)
             for ep_idx in range(0, len(reward_history), max(1, args.log_every)):
-                window = reward_history[max(0, ep_idx - 500):ep_idx+1]
+                window = reward_history[max(0, ep_idx - 500) : ep_idx + 1]
                 avg_r = sum(window) / len(window) if window else 0.0
                 log_episode_metrics(
                     episode=ep_idx + 1,

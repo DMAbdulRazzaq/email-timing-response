@@ -84,7 +84,7 @@ class Evaluator:
             episodes, reward_history, color="#94a3b8", alpha=0.4, linewidth=0.8, label="Raw reward"
         )
         ax.plot(
-            episodes[window-1:],
+            episodes[window - 1 :],
             rolling,
             color="#38bdf8",
             linewidth=2.2,

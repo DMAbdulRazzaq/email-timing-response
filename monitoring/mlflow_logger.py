@@ -101,7 +101,7 @@ def log_reward_curve(
         )
         if len(rolling) > 0:
             ax.plot(
-                episodes[window-1:],
+                episodes[window - 1 :],
                 rolling,
                 color="#38bdf8",
                 linewidth=2.2,
